@@ -1,0 +1,94 @@
+version: 2
+
+project_name: sftui
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: sftui
+    main: .
+    binary: sftui
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: sftui
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "Merge pull request"
+      - "Merge branch"
+
+brews:
+  - name: sftui
+    repository:
+      owner: 0xguy07
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/0xguy07/sf-tui"
+    description: "Terminal UI for the Salesforce platform — SOQL, objects, logs, Apex, deploys."
+    license: "MIT"
+    test: |
+      system "#{bin}/sftui", "--version"
+    install: |
+      bin.install "sftui"
+    dependencies:
+      - name: salesforce-cli
+        type: optional
+
+scoops:
+  - name: sftui
+    repository:
+      owner: 0xguy07
+      name: scoop-bucket
+      token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
+    homepage: "https://github.com/0xguy07/sf-tui"
+    description: "Terminal UI for the Salesforce platform — SOQL, objects, logs, Apex, deploys."
+    license: MIT
+
+release:
+  draft: false
+  prerelease: auto
+  name_template: "sftui {{.Version}}"
+  footer: |
+    ---
+    Install: see https://github.com/0xguy07/sf-tui#install

@@ -1,0 +1,7 @@
+/sf-tui
+/sftui
+/sftui.exe
+/dist/
+.DS_Store
+*.test
+*.out
