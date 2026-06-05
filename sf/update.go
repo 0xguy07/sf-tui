@@ -15,16 +15,16 @@ type RecordUpdatedMsg struct {
 	Updates map[string]string
 }
 
-// FormatUpdateValues turns a map of field→value into the space-separated
-// key='value' format that `sf data update record --values` expects. Single
-// quotes inside the value are escaped as '\''. Empty values become "" so
-// they clear the field.
+// FormatUpdateValues turns a map of field->value into the space-separated
+// key=value format that `sf data update record --values` expects, choosing a
+// quote wrapper per value (see escapeValue). Empty values become "" so they
+// clear the field. Keys are emitted in sorted order for deterministic output.
 func FormatUpdateValues(updates map[string]string) string {
 	keys := make([]string, 0, len(updates))
 	for k := range updates {
 		keys = append(keys, k)
 	}
-	// Stable order makes the assembled command deterministic — easier to log
+	// Stable order makes the assembled command deterministic: easier to log
 	// and to test.
 	sortStrings(keys)
 
@@ -37,11 +37,25 @@ func FormatUpdateValues(updates map[string]string) string {
 
 func escapeValue(v string) string {
 	if v == "" {
-		return "\"\""
+		return `""`
 	}
-	// Wrap in single quotes; embedded single quotes use the shell-style
-	// concatenation '\'' which the sf CLI accepts via the --values arg.
-	return "'" + strings.ReplaceAll(v, "'", `'\''`) + "'"
+	// The sf CLI's --values parser (stringToDictionary in plugin-data) has NO
+	// escape mechanism: it removes quote characters by toggling in/out state as
+	// it scans. So you cannot escape a quote; you can only pick a wrapper that
+	// does not appear inside the value. Double-quote wrapping preserves spaces
+	// AND apostrophes (the common case in Salesforce data: O'Brien, Macy's), so
+	// we prefer it, and fall back to single quotes only when the value itself
+	// contains a double quote.
+	if !strings.Contains(v, `"`) {
+		return `"` + v + `"`
+	}
+	if !strings.Contains(v, "'") {
+		return "'" + v + "'"
+	}
+	// Value contains BOTH a single and a double quote: unrepresentable via the
+	// --values flag (no escaping exists). Double-quote wrap is the least-bad
+	// option; the embedded double quotes will be dropped by the parser.
+	return `"` + v + `"`
 }
 
 func sortStrings(s []string) {
