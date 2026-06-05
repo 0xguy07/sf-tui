@@ -55,17 +55,17 @@ type model struct {
 	ac      panes.Autocomplete
 	record  panes.Record
 
-	saveInput   textinput.Model
-	saving      bool
-	exportInput textinput.Model
-	exporting   bool
-	flsInput    textinput.Model
-	flsPrompt   bool
-	flsForUser  *sf.UserBrief
+	saveInput     textinput.Model
+	saving        bool
+	exportInput   textinput.Model
+	exporting     bool
+	flsInput      textinput.Model
+	flsPrompt     bool
+	flsForUser    *sf.UserBrief
 	deployConfirm bool
-	pickerOn    bool
-	paletteOn   bool
-	helpOn      bool
+	pickerOn      bool
+	paletteOn     bool
+	helpOn        bool
 
 	store *sf.Store
 	cache *sf.Cache
@@ -592,7 +592,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.objects.SetSObjects(msg.SObjects)
 		m.objectsLoadedFor = org
 		m.loading = false
-		m.status = fmt.Sprintf("%d sobjects cached", len(msg.SObjects))
+		if msg.Cached {
+			m.status = fmt.Sprintf("%d sobjects (cached %s) — ctrl+r to refresh", len(msg.SObjects), sf.HumanAge(msg.CachedAt))
+		} else {
+			m.status = fmt.Sprintf("%d sobjects loaded", len(msg.SObjects))
+		}
 		if cmd := m.refreshCompletions(); cmd != nil {
 			cmds = append(cmds, cmd)
 		}
@@ -603,7 +607,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.cache.ReleaseDescribe(org, msg.Describe.Name)
 		m.objects.SetDescribe(msg.Describe)
 		m.loading = false
-		m.status = fmt.Sprintf("%s: %d fields", msg.Describe.Name, len(msg.Describe.Fields))
+		if msg.Cached {
+			m.status = fmt.Sprintf("%s: %d fields (cached %s)", msg.Describe.Name, len(msg.Describe.Fields), sf.HumanAge(msg.CachedAt))
+		} else {
+			m.status = fmt.Sprintf("%s: %d fields", msg.Describe.Name, len(msg.Describe.Fields))
+		}
 		if m.pendingEditFor != "" && strings.EqualFold(m.pendingEditFor, msg.Describe.Name) {
 			if rec := m.results.SelectedRecord(); rec != nil {
 				m.record.Open(msg.Describe.Name, msg.Describe, rec)
@@ -872,6 +880,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+r":
 			if m.tab == tabQuery {
 				return m.runQuery()
+			}
+			if m.tab == tabObjects {
+				org := m.selectedOrg()
+				if org == "" {
+					m.err = "select an org first"
+					return m, nil
+				}
+				m.loading = true
+				m.status = "refreshing sobjects from " + org + "…"
+				m.objectsLoadedFor = org
+				return m, tea.Batch(sf.RefreshSObjects(org), m.spinner.Tick)
 			}
 			if m.tab == tabApex {
 				return m.runApex()
@@ -1796,7 +1815,7 @@ func (m model) helpLine() string {
 		}
 		return "ctrl+space: suggest · ctrl+r: run · ctrl+s: save · ctrl+e: export · ctrl+p: history · ctrl+k: palette"
 	case tabObjects:
-		return "tab: pane · enter: describe · /: filter · ctrl+o: open setup · ctrl+k: palette · q: quit"
+		return "tab: pane · enter: describe · ctrl+r: refresh · /: filter · ctrl+o: open setup · ctrl+k: palette"
 	case tabLogs:
 		return "ctrl+l: tail · ctrl+i: inspector view · ↑↓: scroll · ctrl+k: palette · q: quit"
 	case tabApex:
