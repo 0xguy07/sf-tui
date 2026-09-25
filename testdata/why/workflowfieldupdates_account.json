@@ -1,0 +1,14 @@
+{
+  "totalSize": 1,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "WorkflowFieldUpdate",
+        "url": "/services/data/v67.0/sobjects/WorkflowFieldUpdate/04Y000000000001AAA"
+      },
+      "Id": "04Y000000000001AAA",
+      "Name": "Set Rating Cold"
+    }
+  ]
+}

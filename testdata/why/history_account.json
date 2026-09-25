@@ -1,0 +1,123 @@
+{
+  "totalSize": 9,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "AccountHistory",
+        "url": "/services/data/v67.0/sobjects/AccountHistory/017000000000009AAA"
+      },
+      "Id": "017000000000009AAA",
+      "Field": "Owner",
+      "DataType": "Text",
+      "OldValue": "Alex Admin",
+      "NewValue": "Sam Seller",
+      "CreatedById": "005000000000001AAA",
+      "CreatedDate": "2026-09-20T14:02:11.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "AccountHistory",
+        "url": "/services/data/v67.0/sobjects/AccountHistory/017000000000008AAA"
+      },
+      "Id": "017000000000008AAA",
+      "Field": "Owner",
+      "DataType": "EntityId",
+      "OldValue": "005000000000001AAA",
+      "NewValue": "005000000000004AAA",
+      "CreatedById": "005000000000001AAA",
+      "CreatedDate": "2026-09-20T14:02:11.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "AccountHistory",
+        "url": "/services/data/v67.0/sobjects/AccountHistory/017000000000007AAA"
+      },
+      "Id": "017000000000007AAA",
+      "Field": "Industry",
+      "DataType": "DynamicEnum",
+      "OldValue": "Energy",
+      "NewValue": "Technology",
+      "CreatedById": "005000000000001AAA",
+      "CreatedDate": "2026-09-20T14:02:11.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "AccountHistory",
+        "url": "/services/data/v67.0/sobjects/AccountHistory/017000000000006AAA"
+      },
+      "Id": "017000000000006AAA",
+      "Field": "Rating",
+      "DataType": "DynamicEnum",
+      "OldValue": "Warm",
+      "NewValue": "Hot",
+      "CreatedById": "005000000000001AAA",
+      "CreatedDate": "2026-09-20T14:02:11.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "AccountHistory",
+        "url": "/services/data/v67.0/sobjects/AccountHistory/017000000000005AAA"
+      },
+      "Id": "017000000000005AAA",
+      "Field": "Description",
+      "DataType": "TextArea",
+      "OldValue": "old text",
+      "NewValue": "Updated by after-save flow",
+      "CreatedById": "005000000000001AAA",
+      "CreatedDate": "2026-09-20T14:02:11.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "AccountHistory",
+        "url": "/services/data/v67.0/sobjects/AccountHistory/017000000000004AAA"
+      },
+      "Id": "017000000000004AAA",
+      "Field": "Rating",
+      "DataType": "DynamicEnum",
+      "OldValue": "Cold",
+      "NewValue": "Warm",
+      "CreatedById": "005000000000002AAA",
+      "CreatedDate": "2026-09-19T03:00:00.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "AccountHistory",
+        "url": "/services/data/v67.0/sobjects/AccountHistory/017000000000003AAA"
+      },
+      "Id": "017000000000003AAA",
+      "Field": "Industry",
+      "DataType": "DynamicEnum",
+      "OldValue": null,
+      "NewValue": "Energy",
+      "CreatedById": "005000000000003AAA",
+      "CreatedDate": "2026-09-18T10:00:00.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "AccountHistory",
+        "url": "/services/data/v67.0/sobjects/AccountHistory/017000000000002AAA"
+      },
+      "Id": "017000000000002AAA",
+      "Field": "created",
+      "DataType": "Text",
+      "OldValue": null,
+      "NewValue": null,
+      "CreatedById": "005000000000001AAA",
+      "CreatedDate": "2026-09-18T09:59:59.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "AccountHistory",
+        "url": "/services/data/v67.0/sobjects/AccountHistory/017000000000001AAA"
+      },
+      "Id": "017000000000001AAA",
+      "Field": "Rating",
+      "DataType": "DynamicEnum",
+      "OldValue": null,
+      "NewValue": "Cold",
+      "CreatedById": "005000000000001AAA",
+      "CreatedDate": "2026-09-18T09:59:59.000+0000"
+    }
+  ]
+}

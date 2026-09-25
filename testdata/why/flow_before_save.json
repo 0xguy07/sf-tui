@@ -1,0 +1,51 @@
+{
+  "totalSize": 1,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "Flow",
+        "url": "/services/data/v67.0/sobjects/Flow/301000000000001AAA"
+      },
+      "Id": "301000000000001AAA",
+      "Metadata": {
+        "processType": "AutoLaunchedFlow",
+        "start": {
+          "object": "Account",
+          "recordTriggerType": "Update",
+          "triggerType": "RecordBeforeSave"
+        },
+        "assignments": [
+          {
+            "name": "Set_Rating",
+            "label": "Set Rating",
+            "assignmentItems": [
+              {
+                "assignToReference": "$Record.Rating",
+                "operator": "Assign",
+                "value": {
+                  "stringValue": "Hot"
+                }
+              },
+              {
+                "assignToReference": "$Record.Owner.Name",
+                "operator": "Assign",
+                "value": {
+                  "stringValue": "ignored"
+                }
+              },
+              {
+                "assignToReference": "varCounter",
+                "operator": "Add",
+                "value": {
+                  "numberValue": 1
+                }
+              }
+            ]
+          }
+        ],
+        "recordUpdates": []
+      }
+    }
+  ]
+}

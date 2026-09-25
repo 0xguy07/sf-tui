@@ -1,0 +1,68 @@
+{
+  "totalSize": 3,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "User",
+        "url": "/services/data/v67.0/sobjects/User/005000000000001AAA"
+      },
+      "Id": "005000000000001AAA",
+      "Name": "Alex Admin",
+      "Username": "admin@example.com",
+      "UserType": "Standard",
+      "IsActive": true,
+      "Profile": {
+        "attributes": {
+          "type": "Profile",
+          "url": "/services/data/v67.0/sobjects/Profile/00e000000000001AAA"
+        },
+        "Name": "System Administrator",
+        "UserLicense": {
+          "attributes": {
+            "type": "UserLicense",
+            "url": "/services/data/v67.0/sobjects/UserLicense/100000000000001AAA"
+          },
+          "Name": "Salesforce"
+        }
+      }
+    },
+    {
+      "attributes": {
+        "type": "User",
+        "url": "/services/data/v67.0/sobjects/User/005000000000002AAA"
+      },
+      "Id": "005000000000002AAA",
+      "Name": "Automated Process",
+      "Username": "autoproc@example.com",
+      "UserType": "AutomatedProcess",
+      "IsActive": true,
+      "Profile": null
+    },
+    {
+      "attributes": {
+        "type": "User",
+        "url": "/services/data/v67.0/sobjects/User/005000000000003AAA"
+      },
+      "Id": "005000000000003AAA",
+      "Name": "Integration User",
+      "Username": "integration@example.com",
+      "UserType": "Standard",
+      "IsActive": true,
+      "Profile": {
+        "attributes": {
+          "type": "Profile",
+          "url": "/services/data/v67.0/sobjects/Profile/00e000000000001AAA"
+        },
+        "Name": "Analytics Cloud Integration User",
+        "UserLicense": {
+          "attributes": {
+            "type": "UserLicense",
+            "url": "/services/data/v67.0/sobjects/UserLicense/100000000000001AAA"
+          },
+          "Name": "Analytics Cloud Integration User"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "totalSize": 3,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "ApexTrigger",
+        "url": "/services/data/v67.0/sobjects/ApexTrigger/01q000000000001AAA"
+      },
+      "Id": "01q000000000001AAA",
+      "Name": "AccountAfterUpdate",
+      "Status": "Active",
+      "NamespacePrefix": null,
+      "UsageBeforeInsert": false,
+      "UsageBeforeUpdate": false,
+      "UsageBeforeDelete": false,
+      "UsageAfterInsert": false,
+      "UsageAfterUpdate": true,
+      "UsageAfterDelete": false,
+      "UsageAfterUndelete": false
+    },
+    {
+      "attributes": {
+        "type": "ApexTrigger",
+        "url": "/services/data/v67.0/sobjects/ApexTrigger/01q000000000002AAA"
+      },
+      "Id": "01q000000000002AAA",
+      "Name": "AccountBeforeInsert",
+      "Status": "Active",
+      "NamespacePrefix": null,
+      "UsageBeforeInsert": true,
+      "UsageBeforeUpdate": false,
+      "UsageBeforeDelete": false,
+      "UsageAfterInsert": false,
+      "UsageAfterUpdate": false,
+      "UsageAfterDelete": false,
+      "UsageAfterUndelete": false
+    },
+    {
+      "attributes": {
+        "type": "ApexTrigger",
+        "url": "/services/data/v67.0/sobjects/ApexTrigger/01q000000000003AAA"
+      },
+      "Id": "01q000000000003AAA",
+      "Name": "AccountLegacy",
+      "Status": "Inactive",
+      "NamespacePrefix": null,
+      "UsageBeforeInsert": false,
+      "UsageBeforeUpdate": true,
+      "UsageBeforeDelete": false,
+      "UsageAfterInsert": false,
+      "UsageAfterUpdate": true,
+      "UsageAfterDelete": false,
+      "UsageAfterUndelete": false
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "totalSize": 1,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "EntityDefinition",
+        "url": "/services/data/v67.0/sobjects/EntityDefinition/Account"
+      },
+      "DurableId": "Account",
+      "QualifiedApiName": "Account",
+      "Label": "Account"
+    }
+  ]
+}

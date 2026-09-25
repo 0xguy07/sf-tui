@@ -1,0 +1,17 @@
+{
+  "totalSize": 1,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "ValidationRule",
+        "url": "/services/data/v67.0/sobjects/ValidationRule/03d000000000001AAA"
+      },
+      "Id": "03d000000000001AAA",
+      "ValidationName": "Require_Industry",
+      "Active": true,
+      "ErrorMessage": "Industry is required",
+      "NamespacePrefix": null
+    }
+  ]
+}

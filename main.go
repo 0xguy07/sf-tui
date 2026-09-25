@@ -28,6 +28,7 @@ const (
 	tabTests
 	tabMeta
 	tabCompare
+	tabWhy
 )
 
 type focus int
@@ -36,6 +37,7 @@ const (
 	focusOrgs focus = iota
 	focusMainA
 	focusMainB
+	focusMainC // Why tab's Automation pane
 )
 
 type model struct {
@@ -50,6 +52,7 @@ type model struct {
 	tests   panes.Tests
 	meta    panes.Metadata
 	compare panes.Compare
+	why     panes.Why
 	picker  panes.Picker
 	palette panes.Palette
 	ac      panes.Autocomplete
@@ -141,6 +144,7 @@ func initialModel() model {
 		tests:       panes.NewTests(80, 20),
 		meta:        panes.NewMetadata(80, 20),
 		compare:     panes.NewCompare(80, 20),
+		why:         panes.NewWhy(80, 20),
 		picker:      panes.NewPicker(80, 20),
 		palette:     panes.NewPalette(80, 20),
 		ac:          panes.NewAutocomplete(),
@@ -177,6 +181,7 @@ func (m *model) setFocus(f focus) {
 	m.query.Blur()
 	m.results.Blur()
 	m.apex.Blur()
+	m.why.BlurInput()
 	m.objects.FocusList()
 	if f == focusMainB && m.tab == tabObjects {
 		m.objects.FocusDetail()
@@ -190,6 +195,9 @@ func (m *model) setFocus(f focus) {
 	if f == focusMainA && m.tab == tabApex {
 		_ = m.apex.Focus()
 	}
+	if f == focusMainA && m.tab == tabWhy {
+		_ = m.why.FocusInput()
+	}
 	if f != focusMainA || m.tab != tabQuery {
 		m.ac.Hide()
 	}
@@ -197,6 +205,9 @@ func (m *model) setFocus(f focus) {
 
 func (m *model) cycleFocus(forward bool) {
 	order := []focus{focusOrgs, focusMainA, focusMainB}
+	if m.tab == tabWhy {
+		order = append(order, focusMainC)
+	}
 	idx := 0
 	for i, f := range order {
 		if f == m.focus {
@@ -736,6 +747,38 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tests.MergeCoverageDetail(msg.Uncovered)
 		// Status untouched — this is a quiet enrichment after the headline result.
 
+	case sf.WhyResolvedMsg:
+		if msg.Seq != m.why.Seq() {
+			return m, nil
+		}
+		m.why.SetResolved(msg)
+		if msg.Err != nil {
+			m.loading = false
+			m.status = "why: " + msg.Err.Error()
+			return m, nil
+		}
+		org := m.selectedOrg()
+		t := msg.Trace
+		m.status = "tracing " + t.Object.Name + " " + t.Record.ID + "…"
+		return m, tea.Batch(
+			sf.WhyLoadHistory(org, t, msg.Force, msg.Seq),
+			sf.WhyLoadAutomation(org, t.Object, msg.Force, msg.Seq),
+		)
+
+	case sf.WhyHistoryMsg:
+		if msg.Seq != m.why.Seq() {
+			return m, nil
+		}
+		m.why.SetHistory(msg.Part)
+		m.finishWhy()
+
+	case sf.WhyAutomationMsg:
+		if msg.Seq != m.why.Seq() {
+			return m, nil
+		}
+		m.why.SetAutomation(msg.Part)
+		m.finishWhy()
+
 	case sf.OpenedMsg:
 		m.loading = false
 		m.status = "opened " + msg.What
@@ -781,7 +824,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.stopTail()
 			return m, tea.Quit
 		case "q":
-			if m.focus != focusMainA || m.tab != tabQuery {
+			if (m.focus != focusMainA || (m.tab != tabQuery && m.tab != tabWhy)) &&
+				!(m.tab == tabWhy && m.why.Filtering()) {
 				m.stopTail()
 				return m, tea.Quit
 			}
@@ -842,6 +886,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "alt+9":
 			m.switchTab(tabCompare)
 			return m, nil
+		case "alt+0":
+			m.switchTab(tabWhy)
+			return m, nil
 		case "tab":
 			m.cycleFocus(true)
 			return m, nil
@@ -863,7 +910,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// valid character there. Allowed everywhere else, including filter
 			// inputs (you can press esc first).
 			if !((m.tab == tabQuery && m.focus == focusMainA) ||
-				(m.tab == tabApex && m.focus == focusMainA)) {
+				(m.tab == tabApex && m.focus == focusMainA) ||
+				(m.tab == tabWhy && (m.focus == focusMainA || m.why.Filtering()))) {
 				m.helpOn = true
 				return m, nil
 			}
@@ -914,6 +962,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if m.tab == tabCompare {
 				return m.runCompare()
+			}
+			if m.tab == tabWhy {
+				return m.runWhy()
 			}
 		case "ctrl+s":
 			if m.tab == tabQuery && strings.TrimSpace(m.query.Value()) != "" {
@@ -975,6 +1026,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				_ = m.flsInput.Focus()
 				return m, nil
 			}
+		case "w":
+			if m.tab == tabQuery && m.focus == focusMainB {
+				return m.whyFromResults()
+			}
+		case "i":
+			if m.tab == tabWhy && (m.focus == focusMainB || m.focus == focusMainC) && !m.why.Filtering() {
+				m.why.ToggleInactive()
+				if m.why.ShowInactive {
+					m.status = "showing inactive automation"
+				} else {
+					m.status = "hiding inactive automation"
+				}
+				return m, nil
+			}
 		case "c":
 			if m.tab == tabCompare && m.compare.List.FilterState() != list.Filtering {
 				m.compare.Clear()
@@ -1032,6 +1097,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if m.tab == tabCompare && m.focus == focusMainA {
 				return m.openFieldDiff()
+			}
+			if m.tab == tabWhy && m.focus == focusMainA {
+				return m.runWhy()
 			}
 		}
 
@@ -1125,6 +1193,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.compare, cmd = m.compare.UpdateViewport(msg)
 			}
 		}
+	case focusMainC:
+		if m.tab == tabWhy {
+			m.why, cmd = m.why.UpdateAutomation(msg)
+		}
+	}
+	if m.tab == tabWhy && (m.focus == focusMainA || m.focus == focusMainB) {
+		if m.focus == focusMainA {
+			m.why, cmd = m.why.UpdateInput(msg)
+		} else {
+			m.why, cmd = m.why.UpdateTimeline(msg)
+		}
 	}
 	cmds = append(cmds, cmd)
 
@@ -1179,6 +1258,7 @@ func (m model) paletteCommands() []panes.Command {
 		{ID: "tab.tests", Label: "Go to Tests", Hint: "alt+7", Help: "Run Apex tests with coverage"},
 		{ID: "tab.meta", Label: "Go to Metadata", Hint: "alt+8", Help: "Deploy preview + dry-run for the current project"},
 		{ID: "tab.compare", Label: "Go to Compare", Hint: "alt+9", Help: "Schema diff between two orgs"},
+		{ID: "tab.why", Label: "Why did this record change?", Hint: "alt+0", Help: "Field-history timeline + the automation that could have written each field"},
 		{ID: "action.run", Label: "Run / Execute (current tab)", Hint: "ctrl+r", Help: "Run query / execute Apex / refresh limits"},
 		{ID: "action.deploy", Label: "Deploy (real, Meta tab)", Hint: "ctrl+d", Help: "Run a real (non-dry-run) project deploy after a y/n confirmation"},
 		{ID: "action.open", Label: "Open in Org", Hint: "ctrl+o", Help: "Open selected record or sobject in the browser"},
@@ -1248,6 +1328,9 @@ func (m model) dispatchCommand(id string) (tea.Model, tea.Cmd) {
 	case "tab.compare":
 		m.switchTab(tabCompare)
 		return m, nil
+	case "tab.why":
+		m.switchTab(tabWhy)
+		return m, nil
 	case "action.run":
 		switch m.tab {
 		case tabQuery:
@@ -1260,6 +1343,8 @@ func (m model) dispatchCommand(id string) (tea.Model, tea.Cmd) {
 			return m.runMeta()
 		case tabCompare:
 			return m.runCompare()
+		case tabWhy:
+			return m.runWhy()
 		case tabLimits:
 			org := m.selectedOrg()
 			if org == "" {
@@ -1354,6 +1439,16 @@ func (m model) openInOrg() (tea.Model, tea.Cmd) {
 		if name := m.objects.SelectedName(); name != "" {
 			path = "/lightning/setup/ObjectManager/" + name + "/Details/view"
 			what = name + " in Object Manager"
+		}
+	case tabWhy:
+		if m.focus == focusMainC {
+			if it := m.why.SelectedAutomation(); it != nil {
+				path = sf.AutomationPath(*it, m.why.Trace().Object.Name)
+				what = it.Display()
+			}
+		} else if id := m.why.LoadedID(); id != "" {
+			path = "/" + id
+			what = id
 		}
 	}
 	if path == "" {
@@ -1580,6 +1675,7 @@ func (m *model) layout() {
 	m.tests.SetSize(mainW, bodyH)
 	m.meta.SetSize(mainW, bodyH)
 	m.compare.SetSize(mainW, bodyH)
+	m.why.SetSize(mainW, bodyH)
 	m.picker.SetSize(m.width-6, m.height-6)
 	m.palette.SetSize(m.width-6, m.height-6)
 	m.record.SetSize(m.width-6, m.height-4)
@@ -1638,6 +1734,8 @@ func (m model) View() string {
 		mainView = m.meta.View(m.focus == focusMainA, m.focus == focusMainB)
 	case tabCompare:
 		mainView = m.compare.View(m.focus == focusMainA, m.focus == focusMainB)
+	case tabWhy:
+		mainView = m.why.View(int(m.focus) - int(focusMainA))
 	}
 
 	body := lipgloss.JoinHorizontal(lipgloss.Top, orgsView, mainView)
@@ -1704,7 +1802,7 @@ func renderHelpModal(width, height int) string {
 	fmt.Fprintln(&b)
 
 	fmt.Fprintln(&b, sectionStyle.Render("Global"))
-	fmt.Fprintln(&b, row("alt+1 … alt+9", "switch tab (Query/Objects/Logs/Apex/Limits/Perms/Tests/Meta/Compare)"))
+	fmt.Fprintln(&b, row("alt+1 … alt+0", "switch tab (Query/Objects/Logs/Apex/Limits/Perms/Tests/Meta/Compare/Why)"))
 	fmt.Fprintln(&b, row("tab / shift+tab", "cycle pane focus within current tab"))
 	fmt.Fprintln(&b, row("ctrl+k", "command palette"))
 	fmt.Fprintln(&b, row("ctrl+o", "open in org (record / sobject / Setup home)"))
@@ -1735,6 +1833,7 @@ func renderHelpModal(width, height int) string {
 	fmt.Fprintln(&b, row("ctrl+p", "saved queries + history"))
 	fmt.Fprintln(&b, row("ctrl+y / ctrl+x", "copy results TSV / write CSV"))
 	fmt.Fprintln(&b, row("enter (results)", "edit selected record"))
+	fmt.Fprintln(&b, row("w (results)", "why did this record change? (opens Why tab)"))
 	fmt.Fprintln(&b)
 
 	fmt.Fprintln(&b, sectionStyle.Render("Logs / Apex / Tests / Perms"))
@@ -1753,6 +1852,15 @@ func renderHelpModal(width, height int) string {
 	fmt.Fprintln(&b, row("c", "clear loaded sides (Compare)"))
 	fmt.Fprintln(&b)
 
+	fmt.Fprintln(&b, sectionStyle.Render("Why tab"))
+	fmt.Fprintln(&b, row("ctrl+r / enter", "trace the record Id (ctrl+r again on the same Id refreshes)"))
+	fmt.Fprintln(&b, row("tab", "Id input → saves timeline → automation pane"))
+	fmt.Fprintln(&b, row("pgup / pgdn", "scroll the selected save's detail"))
+	fmt.Fprintln(&b, row("ctrl+o", "open record (timeline) / selected automation"))
+	fmt.Fprintln(&b, row("i", "show/hide inactive automation"))
+	fmt.Fprintln(&b, row("/", "filter saves or automation"))
+	fmt.Fprintln(&b)
+
 	fmt.Fprintln(&b, dimStyle.Render("Press ? again, esc, or q to close."))
 
 	body := b.String()
@@ -1766,10 +1874,10 @@ func renderHelpModal(width, height int) string {
 }
 
 func renderTabs(active tab) string {
-	names := []string{"Query", "Objects", "Logs", "Apex", "Limits", "Perms", "Tests", "Meta", "Compare"}
+	names := []string{"Query", "Objects", "Logs", "Apex", "Limits", "Perms", "Tests", "Meta", "Compare", "Why"}
 	parts := make([]string, 0, len(names))
 	for i, n := range names {
-		label := fmt.Sprintf("%d %s", i+1, n)
+		label := fmt.Sprintf("%d %s", (i+1)%10, n)
 		if tab(i) == active {
 			parts = append(parts, activeTab.Render(label))
 		} else {
@@ -1811,7 +1919,7 @@ func (m model) helpLine() string {
 			return "↑↓: move · tab/enter: accept · esc: close · (typing updates suggestions)"
 		}
 		if m.focus == focusMainB {
-			return "↑↓: rows · enter: edit · ctrl+o: open record · ctrl+y: TSV · ctrl+x: CSV · ctrl+k: palette"
+			return "↑↓: rows · enter: edit · w: why · ctrl+o: open record · ctrl+y: TSV · ctrl+x: CSV · ctrl+k: palette"
 		}
 		return "ctrl+space: suggest · ctrl+r: run · ctrl+s: save · ctrl+e: export · ctrl+p: history · ctrl+k: palette"
 	case tabObjects:
@@ -1842,8 +1950,74 @@ func (m model) helpLine() string {
 			return "esc: back to summary · ↑↓: scroll fields · tab: pane · ctrl+k: palette"
 		}
 		return "ctrl+r: load A then B · enter: field diff · c: clear · /: filter · ctrl+k: palette"
+	case tabWhy:
+		switch m.focus {
+		case focusMainA:
+			return "type a record Id · ctrl+r/enter: trace · tab: timeline · ctrl+k: palette"
+		case focusMainB:
+			return "↑↓: saves · pgup/pgdn: detail · /: filter · i: inactive · ctrl+o: open record · tab: automation"
+		case focusMainC:
+			return "↑↓: automation · /: filter · i: inactive · ctrl+o: open in Setup · ctrl+r: refresh · tab: orgs"
+		}
+		return "alt+0 Why: tab to the Id input · ctrl+k: palette"
 	}
 	return ""
+}
+
+func (m model) runWhy() (tea.Model, tea.Cmd) {
+	org := m.selectedOrg()
+	if org == "" {
+		m.err = "select an org first"
+		return m, nil
+	}
+	id := m.why.Value()
+	if !sf.ValidRecordID(id) {
+		m.err = "enter a 15- or 18-character record Id"
+		return m, nil
+	}
+	loaded := m.why.LoadedID()
+	force := loaded != "" && loaded[:15] == id[:15]
+	seq := m.why.Begin()
+	m.loading = true
+	m.err = ""
+	if force {
+		m.status = "refreshing trace for " + id + "…"
+	} else {
+		m.status = "resolving " + id + "…"
+	}
+	return m, tea.Batch(sf.WhyResolve(org, id, force, seq), m.spinner.Tick)
+}
+
+func (m model) whyFromResults() (tea.Model, tea.Cmd) {
+	rec := m.results.SelectedRecord()
+	id := ""
+	if rec != nil {
+		id = stringFromAny(sf.ResolvePath(rec, "Id"))
+	}
+	if id == "" {
+		m.err = "row has no Id field — include Id in your SELECT"
+		return m, nil
+	}
+	m.why.SetID(id)
+	m.switchTab(tabWhy)
+	m.setFocus(focusMainB)
+	return m.runWhy()
+}
+
+func (m *model) finishWhy() {
+	if m.why.Busy() {
+		return
+	}
+	m.loading = false
+	t := m.why.Trace()
+	items := 0
+	for _, s := range t.Automation {
+		items += len(s.Items)
+	}
+	m.status = fmt.Sprintf("%s %s: %d save(s), %d automation item(s)", t.Object.Name, t.Record.ID, len(t.Saves), items)
+	if n := len(t.Errors); n > 0 {
+		m.status += fmt.Sprintf(" · %d section note(s)", n)
+	}
 }
 
 func main() {

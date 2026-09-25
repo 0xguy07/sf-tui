@@ -1,0 +1,23 @@
+{
+  "totalSize": 1,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "WorkflowFieldUpdate",
+        "url": "/services/data/v67.0/sobjects/WorkflowFieldUpdate/04Y000000000001AAA"
+      },
+      "Id": "04Y000000000001AAA",
+      "FullName": "Account.Set_Rating_Cold",
+      "Metadata": {
+        "field": "Rating",
+        "literalValue": "Cold",
+        "operation": "Literal",
+        "name": "Set Rating Cold",
+        "notifyAssignee": false,
+        "protected": false,
+        "reevaluateOnChange": false
+      }
+    }
+  ]
+}
