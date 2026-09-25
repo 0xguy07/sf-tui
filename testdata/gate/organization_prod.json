@@ -1,0 +1,17 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "Organization",
+          "url": "/services/data/v67.0/sobjects/Organization/00D000000000001AAA"
+        },
+        "IsSandbox": false,
+        "OrganizationType": "Enterprise Edition"
+      }
+    ],
+    "totalSize": 1,
+    "done": true
+  }
+}
