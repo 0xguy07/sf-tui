@@ -1,0 +1,96 @@
+{
+  "status": 0,
+  "result": {
+    "other": [
+      {
+        "username": "me@dev.example",
+        "alias": "my-de",
+        "orgId": "00D000000000001AAA",
+        "instanceUrl": "https://example.my.salesforce.com",
+        "accessToken": "<REDACTED>",
+        "connectedStatus": "Connected",
+        "isDefaultUsername": false,
+        "lastUsed": "2026-09-24T12:00:00.000Z"
+      }
+    ],
+    "sandboxes": [
+      {
+        "username": "admin@acme.com.uat",
+        "alias": "acme-uat",
+        "orgId": "00D000000000001AAA",
+        "instanceUrl": "https://acme--uat.sandbox.my.salesforce.com",
+        "accessToken": "<REDACTED>",
+        "connectedStatus": "Connected",
+        "isDefaultUsername": false,
+        "lastUsed": "2026-09-24T12:00:00.000Z",
+        "isSandbox": true
+      }
+    ],
+    "nonScratchOrgs": [
+      {
+        "username": "admin@acme.com",
+        "alias": "acme-prod",
+        "orgId": "00D000000000001AAA",
+        "instanceUrl": "https://example.my.salesforce.com",
+        "accessToken": "<REDACTED>",
+        "connectedStatus": "Connected",
+        "isDefaultUsername": false,
+        "lastUsed": "2026-09-24T12:00:00.000Z",
+        "isDevHub": true
+      },
+      {
+        "username": "admin@acme.com.uat",
+        "alias": "acme-uat",
+        "orgId": "00D000000000001AAA",
+        "instanceUrl": "https://acme--uat.sandbox.my.salesforce.com",
+        "accessToken": "<REDACTED>",
+        "connectedStatus": "Connected",
+        "isDefaultUsername": false,
+        "lastUsed": "2026-09-24T12:00:00.000Z",
+        "isSandbox": true
+      },
+      {
+        "username": "me@dev.example",
+        "alias": "my-de",
+        "orgId": "00D000000000001AAA",
+        "instanceUrl": "https://example.my.salesforce.com",
+        "accessToken": "<REDACTED>",
+        "connectedStatus": "Connected",
+        "isDefaultUsername": false,
+        "lastUsed": "2026-09-24T12:00:00.000Z"
+      }
+    ],
+    "devHubs": [
+      {
+        "username": "admin@acme.com",
+        "alias": "acme-prod",
+        "orgId": "00D000000000001AAA",
+        "instanceUrl": "https://example.my.salesforce.com",
+        "accessToken": "<REDACTED>",
+        "connectedStatus": "Connected",
+        "isDefaultUsername": false,
+        "lastUsed": "2026-09-24T12:00:00.000Z",
+        "isDevHub": true
+      }
+    ],
+    "scratchOrgs": [
+      {
+        "username": "test-abc@example.com",
+        "alias": "feature-scratch",
+        "orgId": "00D000000000001AAA",
+        "instanceUrl": "https://example.my.salesforce.com",
+        "accessToken": "<REDACTED>",
+        "connectedStatus": "Connected",
+        "isDefaultUsername": false,
+        "lastUsed": "2026-09-24T12:00:00.000Z",
+        "devHubUsername": "admin@acme.com",
+        "expirationDate": "2026-10-01",
+        "createdOrgInstance": "USA123S",
+        "status": "Active",
+        "isExpired": false,
+        "namespace": null
+      }
+    ]
+  },
+  "warnings": []
+}
