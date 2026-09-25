@@ -1,0 +1,34 @@
+{
+  "totalSize": 4,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "FieldDefinition",
+        "url": "/services/data/v67.0/sobjects/FieldDefinition/Case.Contact"
+      },
+      "QualifiedApiName": "ContactId"
+    },
+    {
+      "attributes": {
+        "type": "FieldDefinition",
+        "url": "/services/data/v67.0/sobjects/FieldDefinition/Case.Status"
+      },
+      "QualifiedApiName": "Status"
+    },
+    {
+      "attributes": {
+        "type": "FieldDefinition",
+        "url": "/services/data/v67.0/sobjects/FieldDefinition/Case.Owner"
+      },
+      "QualifiedApiName": "OwnerId"
+    },
+    {
+      "attributes": {
+        "type": "FieldDefinition",
+        "url": "/services/data/v67.0/sobjects/FieldDefinition/Case.Subject"
+      },
+      "QualifiedApiName": "Subject"
+    }
+  ]
+}

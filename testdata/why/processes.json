@@ -1,0 +1,38 @@
+{
+  "totalSize": 2,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "FlowDefinitionView",
+        "url": "/services/data/v67.0/sobjects/FlowDefinitionView/300000000000001AAA"
+      },
+      "ApiName": "Account_Process",
+      "Label": "Account Process",
+      "ActiveVersionId": "301000000000003AAA",
+      "LatestVersionId": "301000000000003AAA",
+      "ProcessType": "Workflow",
+      "TriggerType": "",
+      "RecordTriggerType": null,
+      "TriggerOrder": null,
+      "NamespacePrefix": null,
+      "IsActive": true
+    },
+    {
+      "attributes": {
+        "type": "FlowDefinitionView",
+        "url": "/services/data/v67.0/sobjects/FlowDefinitionView/300000000000001AAA"
+      },
+      "ApiName": "Contact_Process",
+      "Label": "Contact Process",
+      "ActiveVersionId": "301000000000009AAA",
+      "LatestVersionId": "301000000000009AAA",
+      "ProcessType": "Workflow",
+      "TriggerType": "",
+      "RecordTriggerType": null,
+      "TriggerOrder": null,
+      "NamespacePrefix": null,
+      "IsActive": true
+    }
+  ]
+}

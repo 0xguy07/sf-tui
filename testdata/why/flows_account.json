@@ -1,0 +1,102 @@
+{
+  "totalSize": 6,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "FlowDefinitionView",
+        "url": "/services/data/v67.0/sobjects/FlowDefinitionView/300000000000001AAA"
+      },
+      "ApiName": "Account_After_Description",
+      "Label": "Account After: Description",
+      "ActiveVersionId": "301000000000002AAA",
+      "LatestVersionId": "301000000000002AAA",
+      "ProcessType": "AutoLaunchedFlow",
+      "TriggerType": "RecordAfterSave",
+      "RecordTriggerType": "CreateAndUpdate",
+      "TriggerOrder": null,
+      "NamespacePrefix": null,
+      "IsActive": true
+    },
+    {
+      "attributes": {
+        "type": "FlowDefinitionView",
+        "url": "/services/data/v67.0/sobjects/FlowDefinitionView/300000000000001AAA"
+      },
+      "ApiName": "Account_Before_Rating",
+      "Label": "Account Before: Rating",
+      "ActiveVersionId": "301000000000001AAA",
+      "LatestVersionId": "301000000000001AAA",
+      "ProcessType": "AutoLaunchedFlow",
+      "TriggerType": "RecordBeforeSave",
+      "RecordTriggerType": "Update",
+      "TriggerOrder": 10,
+      "NamespacePrefix": null,
+      "IsActive": true
+    },
+    {
+      "attributes": {
+        "type": "FlowDefinitionView",
+        "url": "/services/data/v67.0/sobjects/FlowDefinitionView/300000000000001AAA"
+      },
+      "ApiName": "Account_Before_Zeta",
+      "Label": "Zeta Before",
+      "ActiveVersionId": "301000000000005AAA",
+      "LatestVersionId": "301000000000005AAA",
+      "ProcessType": "AutoLaunchedFlow",
+      "TriggerType": "RecordBeforeSave",
+      "RecordTriggerType": "CreateAndUpdate",
+      "TriggerOrder": 10,
+      "NamespacePrefix": null,
+      "IsActive": true
+    },
+    {
+      "attributes": {
+        "type": "FlowDefinitionView",
+        "url": "/services/data/v67.0/sobjects/FlowDefinitionView/300000000000001AAA"
+      },
+      "ApiName": "Account_Before_Alpha",
+      "Label": "Alpha Before",
+      "ActiveVersionId": "301000000000006AAA",
+      "LatestVersionId": "301000000000006AAA",
+      "ProcessType": "AutoLaunchedFlow",
+      "TriggerType": "RecordBeforeSave",
+      "RecordTriggerType": "Create",
+      "TriggerOrder": null,
+      "NamespacePrefix": null,
+      "IsActive": true
+    },
+    {
+      "attributes": {
+        "type": "FlowDefinitionView",
+        "url": "/services/data/v67.0/sobjects/FlowDefinitionView/300000000000001AAA"
+      },
+      "ApiName": "Account_After_RecordVar",
+      "Label": "Account After: Parent",
+      "ActiveVersionId": "301000000000004AAA",
+      "LatestVersionId": "301000000000004AAA",
+      "ProcessType": "AutoLaunchedFlow",
+      "TriggerType": "RecordAfterSave",
+      "RecordTriggerType": "Update",
+      "TriggerOrder": 5,
+      "NamespacePrefix": null,
+      "IsActive": true
+    },
+    {
+      "attributes": {
+        "type": "FlowDefinitionView",
+        "url": "/services/data/v67.0/sobjects/FlowDefinitionView/300000000000001AAA"
+      },
+      "ApiName": "SyncAcctContactPointAddress",
+      "Label": "Sync Account Addresses",
+      "ActiveVersionId": null,
+      "LatestVersionId": "cpauto__SyncAcctContactPointAddress-1",
+      "ProcessType": "AutoLaunchedFlow",
+      "TriggerType": "RecordAfterSave",
+      "RecordTriggerType": "CreateAndUpdate",
+      "TriggerOrder": null,
+      "NamespacePrefix": "cpauto",
+      "IsActive": false
+    }
+  ]
+}

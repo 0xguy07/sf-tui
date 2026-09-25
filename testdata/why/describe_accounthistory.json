@@ -1,0 +1,59 @@
+{
+  "name": "AccountHistory",
+  "label": "Account History",
+  "custom": false,
+  "fields": [
+    {
+      "name": "Id",
+      "label": "Id",
+      "type": "string",
+      "referenceTo": []
+    },
+    {
+      "name": "AccountId",
+      "label": "AccountId",
+      "type": "reference",
+      "referenceTo": [
+        "Account"
+      ]
+    },
+    {
+      "name": "CreatedById",
+      "label": "CreatedById",
+      "type": "reference",
+      "referenceTo": [
+        "User"
+      ]
+    },
+    {
+      "name": "CreatedDate",
+      "label": "CreatedDate",
+      "type": "string",
+      "referenceTo": []
+    },
+    {
+      "name": "Field",
+      "label": "Field",
+      "type": "string",
+      "referenceTo": []
+    },
+    {
+      "name": "DataType",
+      "label": "DataType",
+      "type": "string",
+      "referenceTo": []
+    },
+    {
+      "name": "OldValue",
+      "label": "OldValue",
+      "type": "string",
+      "referenceTo": []
+    },
+    {
+      "name": "NewValue",
+      "label": "NewValue",
+      "type": "string",
+      "referenceTo": []
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "totalSize": 1,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "Flow",
+        "url": "/services/data/v67.0/sobjects/Flow/301000000000009AAA"
+      },
+      "Id": "301000000000009AAA",
+      "Metadata": {
+        "processType": "Workflow",
+        "processMetadataValues": [
+          {
+            "name": "ObjectType",
+            "value": {
+              "stringValue": "Contact"
+            }
+          },
+          {
+            "name": "TriggerType",
+            "value": {
+              "stringValue": "onCreateOnly"
+            }
+          }
+        ],
+        "variables": [
+          {
+            "name": "myVariable_current",
+            "objectType": "Contact",
+            "dataType": "SObject"
+          }
+        ],
+        "recordUpdates": [
+          {
+            "name": "myRule_1_A1",
+            "object": "Contact",
+            "inputAssignments": [
+              {
+                "field": "Title",
+                "value": {
+                  "stringValue": "x"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

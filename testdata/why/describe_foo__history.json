@@ -1,0 +1,35 @@
+{
+  "name": "Foo__History",
+  "label": "History: Foo",
+  "custom": true,
+  "fields": [
+    {
+      "name": "Id",
+      "label": "Id",
+      "type": "string",
+      "referenceTo": []
+    },
+    {
+      "name": "ParentId",
+      "label": "ParentId",
+      "type": "reference",
+      "referenceTo": [
+        "Foo__c"
+      ]
+    },
+    {
+      "name": "CreatedById",
+      "label": "CreatedById",
+      "type": "reference",
+      "referenceTo": [
+        "User"
+      ]
+    },
+    {
+      "name": "Field",
+      "label": "Field",
+      "type": "string",
+      "referenceTo": []
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "totalSize": 1,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "Flow",
+        "url": "/services/data/v67.0/sobjects/Flow/301000000000002AAA"
+      },
+      "Id": "301000000000002AAA",
+      "Metadata": {
+        "processType": "AutoLaunchedFlow",
+        "start": {
+          "object": "Account",
+          "recordTriggerType": "CreateAndUpdate",
+          "triggerType": "RecordAfterSave"
+        },
+        "assignments": [],
+        "recordUpdates": [
+          {
+            "name": "Update_Description",
+            "inputReference": "$Record",
+            "object": null,
+            "inputAssignments": [
+              {
+                "field": "Description",
+                "value": {
+                  "stringValue": "Updated by after-save flow"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

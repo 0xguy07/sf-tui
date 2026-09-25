@@ -1,0 +1,74 @@
+{
+  "sobjects": [
+    {
+      "name": "Account",
+      "label": "Account",
+      "custom": false,
+      "queryable": true,
+      "keyPrefix": "001"
+    },
+    {
+      "name": "AccountHistory",
+      "label": "Account History",
+      "custom": false,
+      "queryable": true,
+      "keyPrefix": null
+    },
+    {
+      "name": "Case",
+      "label": "Case",
+      "custom": false,
+      "queryable": true,
+      "keyPrefix": "500"
+    },
+    {
+      "name": "CaseHistory",
+      "label": "Case History",
+      "custom": false,
+      "queryable": true,
+      "keyPrefix": "017"
+    },
+    {
+      "name": "Opportunity",
+      "label": "Opportunity",
+      "custom": false,
+      "queryable": true,
+      "keyPrefix": "006"
+    },
+    {
+      "name": "OpportunityFieldHistory",
+      "label": "Opportunity Field History",
+      "custom": false,
+      "queryable": true,
+      "keyPrefix": "017"
+    },
+    {
+      "name": "Foo__c",
+      "label": "Foo",
+      "custom": true,
+      "queryable": true,
+      "keyPrefix": "a0X"
+    },
+    {
+      "name": "Foo__History",
+      "label": "History: Foo",
+      "custom": true,
+      "queryable": true,
+      "keyPrefix": null
+    },
+    {
+      "name": "Bar__c",
+      "label": "Bar",
+      "custom": true,
+      "queryable": true,
+      "keyPrefix": "a0Y"
+    },
+    {
+      "name": "User",
+      "label": "User",
+      "custom": false,
+      "queryable": true,
+      "keyPrefix": "005"
+    }
+  ]
+}

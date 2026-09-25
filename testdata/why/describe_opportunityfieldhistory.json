@@ -1,0 +1,35 @@
+{
+  "name": "OpportunityFieldHistory",
+  "label": "Opportunity Field History",
+  "custom": false,
+  "fields": [
+    {
+      "name": "Id",
+      "label": "Id",
+      "type": "string",
+      "referenceTo": []
+    },
+    {
+      "name": "OpportunityId",
+      "label": "OpportunityId",
+      "type": "reference",
+      "referenceTo": [
+        "Opportunity"
+      ]
+    },
+    {
+      "name": "CreatedById",
+      "label": "CreatedById",
+      "type": "reference",
+      "referenceTo": [
+        "User"
+      ]
+    },
+    {
+      "name": "Field",
+      "label": "Field",
+      "type": "string",
+      "referenceTo": []
+    }
+  ]
+}

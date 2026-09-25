@@ -59,15 +59,16 @@ sftui
 | `alt+7`  | **Tests**        | Apex test runner — multi-select classes with `space`, run with `ctrl+r`, see pass/fail + coverage with uncovered line numbers |
 | `alt+8`  | **Meta**         | Deploy preview for the current project — see what would deploy/delete/conflict, dry-run with `ctrl+r`, real deploy with `ctrl+d` (asks first) |
 | `alt+9`  | **Compare**      | Schema diff between two orgs — pick org A, `ctrl+r`, pick org B, `ctrl+r` again. `enter` on a row → field-level diff. `c` to clear |
+| `alt+0`  | **Why**          | "Why did this record change?" Enter a record Id and press `ctrl+r` to see its tracked field changes grouped into saves, each with who made it, plus every automation on the object in order of execution and which of them could have written each field. Read-only |
 
 ## Keybindings
 
 | Key                 | Action |
 |---------------------|--------|
 | `tab` / `shift+tab` | Switch pane within the current tab |
-| `alt+1` … `alt+9`   | Switch tab |
+| `alt+1` … `alt+0`   | Switch tab |
 | `ctrl+k`            | Command palette — fuzzy-pick any action |
-| `ctrl+o`            | Open in org — selected record (Query), object in Setup (Objects), or Setup home |
+| `ctrl+o`            | Open in org — selected record (Query), object in Setup (Objects), traced record or selected automation (Why), or Setup home |
 | `ctrl+t`            | Toggle Tooling API for queries (Query tab) |
 | `ctrl+i`            | Toggle Apex log inspector (Logs tab) |
 | `space`             | Toggle test class selection (Tests tab) |
@@ -77,7 +78,7 @@ sftui
 | `G / end`           | Jump to bottom (lists, tables, viewports) |
 | `?`                 | Help overlay — every keybinding by section |
 | `/`                 | Filter current list |
-| `ctrl+r`            | Run query (Query) / execute Apex (Apex) / refresh schema cache (Objects) / run tests (Tests) / dry-run (Meta) / load side (Compare) |
+| `ctrl+r`            | Run query (Query) / execute Apex (Apex) / refresh schema cache (Objects) / run tests (Tests) / dry-run (Meta) / load side (Compare) / trace a record, again to refresh (Why) |
 | `ctrl+d`            | Real, non-dry-run deploy (Meta tab) — confirms with `y/n` |
 | `ctrl+space`        | Force-trigger autocomplete |
 | `tab` / `enter`     | Accept current autocomplete suggestion (when popup is open) |
@@ -87,6 +88,8 @@ sftui
 | `ctrl+y`            | Copy results as TSV to clipboard |
 | `ctrl+x`            | Write results as CSV to `~/sf-tui-queries/*.csv` |
 | `enter` (results)   | Open record editor for the selected row |
+| `w` (results)       | Open the selected row in the Why tab and trace it |
+| `i`                 | Show/hide inactive automation (Why tab) |
 | `ctrl+p`            | Open saved queries / history picker |
 | `ctrl+l`            | Start/stop log tail (Logs tab) |
 | `ctrl+c` / `q`      | Quit |
@@ -108,6 +111,7 @@ sftui
 - **Tooling API support (`ctrl+t`)** — flip the Query tab into Tooling API mode to query `ApexClass`, `FlowDefinition`, `CustomField`, and friends. Header shows a yellow `TOOLING` badge so you don't run a regular query against the wrong API.
 - **Org Compare with field-level diff** — sobject-level diff first, then `enter` on any row drills into a field-by-field comparison: only-in-A, only-in-B, and changed (with the specific attribute that moved — type, length, required, formula, picklist values).
 - **Real deploy from the Meta tab (`ctrl+d`)** — once you've reviewed the preview, `ctrl+d` runs a real deploy. A red `REAL DEPLOY to <org> — y/n` confirmation makes sure you can't fire it by accident.
+- **Why did this record change? (`alt+0`)**: a timeline of a record's field-history changes, grouped into saves and badged `AUTO` / `INTEG` / `GUEST` by who made them. Beside it, every flow, trigger, validation rule, assignment rule, workflow rule, and process on the object, in Salesforce order of execution. Each changed field lists the automation that could have written it. `w` on a query result jumps straight there.
 - **Multi-org native** — switch orgs with one keypress; each tab scopes to the selected org.
 - **Single binary** — ~6 MB, no Electron, no browser, no JVM. Works over SSH.
 
@@ -130,6 +134,7 @@ sftui
 - [x] Org compare (sobject-level schema diff between two orgs)
 - [x] Field-level diff per sobject in Org Compare
 - [x] Real (non-dry-run) deploy from the Meta tab
+- [x] Why tab: record field-history timeline + automation in order of execution, with possible writers per field
 
 ## Configuration
 
@@ -141,7 +146,7 @@ Saved queries, history, and the on-disk schema cache live at:
 %AppData%\sf-tui\                            (Windows)
 ```
 
-The schema cache (per-org sobject lists and describes) lives under `cache/` there and is served for 24 hours before a refetch; `ctrl+r` on the Objects tab forces a refresh. Safe to delete at any time — it just rebuilds on next use.
+The schema cache (per-org sobject lists and describes) lives under `cache/` there and is served for 24 hours before a refetch; `ctrl+r` on the Objects tab forces a refresh. The Why tab caches each object's automation inventory there for 24 hours too (`ctrl+r` on an already-traced record refreshes it), plus activated flow versions, which never change. Field history and record data are never written to disk. Safe to delete at any time — it just rebuilds on next use.
 
 Exported queries (`ctrl+e`) and CSVs (`ctrl+x`) are written to `~/sf-tui-queries/`.
 

@@ -1,0 +1,15 @@
+{
+  "totalSize": 1,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "EntityDefinition",
+        "url": "/services/data/v67.0/sobjects/EntityDefinition/01I000000000001"
+      },
+      "DurableId": "01I000000000001",
+      "QualifiedApiName": "Foo__c",
+      "Label": "Foo"
+    }
+  ]
+}

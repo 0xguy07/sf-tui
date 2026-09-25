@@ -1,0 +1,36 @@
+{
+  "totalSize": 1,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "Flow",
+        "url": "/services/data/v67.0/sobjects/Flow/301000000000004AAA"
+      },
+      "Id": "301000000000004AAA",
+      "Metadata": {
+        "processType": "AutoLaunchedFlow",
+        "start": {
+          "object": "Account",
+          "recordTriggerType": "Update",
+          "triggerType": "RecordAfterSave"
+        },
+        "recordLookups": [
+          {
+            "name": "Get_Parent",
+            "object": "Account",
+            "outputReference": "ParentAccount"
+          }
+        ],
+        "recordUpdates": [
+          {
+            "name": "Update_Parent",
+            "inputReference": "ParentAccount",
+            "object": null,
+            "inputAssignments": []
+          }
+        ]
+      }
+    }
+  ]
+}

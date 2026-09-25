@@ -1,0 +1,28 @@
+{
+  "totalSize": 1,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "WorkflowRule",
+        "url": "/services/data/v67.0/sobjects/WorkflowRule/01Q000000000001AAA"
+      },
+      "Id": "01Q000000000001AAA",
+      "Metadata": {
+        "active": true,
+        "triggerType": "onCreateOrTriggeringUpdate",
+        "formula": "ISPICKVAL(Industry, 'Energy')",
+        "actions": [
+          {
+            "name": "Set_Rating_Cold",
+            "type": "FieldUpdate"
+          },
+          {
+            "name": "Notify_Owner",
+            "type": "Alert"
+          }
+        ]
+      }
+    }
+  ]
+}

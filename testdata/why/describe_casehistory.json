@@ -1,0 +1,65 @@
+{
+  "name": "CaseHistory",
+  "label": "Case History",
+  "custom": false,
+  "fields": [
+    {
+      "name": "Id",
+      "label": "Id",
+      "type": "string",
+      "referenceTo": []
+    },
+    {
+      "name": "IsDeleted",
+      "label": "IsDeleted",
+      "type": "string",
+      "referenceTo": []
+    },
+    {
+      "name": "CaseId",
+      "label": "CaseId",
+      "type": "reference",
+      "referenceTo": [
+        "Case"
+      ]
+    },
+    {
+      "name": "CreatedById",
+      "label": "CreatedById",
+      "type": "reference",
+      "referenceTo": [
+        "User"
+      ]
+    },
+    {
+      "name": "CreatedDate",
+      "label": "CreatedDate",
+      "type": "string",
+      "referenceTo": []
+    },
+    {
+      "name": "Field",
+      "label": "Field",
+      "type": "string",
+      "referenceTo": []
+    },
+    {
+      "name": "DataType",
+      "label": "DataType",
+      "type": "string",
+      "referenceTo": []
+    },
+    {
+      "name": "OldValue",
+      "label": "OldValue",
+      "type": "string",
+      "referenceTo": []
+    },
+    {
+      "name": "NewValue",
+      "label": "NewValue",
+      "type": "string",
+      "referenceTo": []
+    }
+  ]
+}
