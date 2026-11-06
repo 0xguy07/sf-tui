@@ -31,17 +31,44 @@ func renderPermissionsDiffText(d sf.PermissionsDiff) string {
 		b.WriteString("System overrides:\n")
 		for _, o := range d.Overrides {
 			name := map[string]string{"modifyAllData": "Modify All Data", "viewAllData": "View All Data"}[o.Name]
-			fmt.Fprintf(&b, "  %-17s A[%s]  B[%s]\n", name, src(o.A), src(o.B))
+			fmt.Fprintf(&b, "  %-17s A[%s]  B[%s]", name, src(o.A), src(o.B))
+			if o.SameGrant {
+				b.WriteString("  (same grant, different source)")
+			}
+			b.WriteString("\n")
 		}
 		b.WriteString("\n")
 	}
 
-	rows := func(title string, gs []sf.GrantDiff) {
+	notCompared := func(section string) string {
+		for _, s := range d.NotCompared {
+			if s != section {
+				continue
+			}
+			var why []string
+			for _, e := range d.Errors {
+				if strings.HasSuffix(e.Section, ":"+section) {
+					why = append(why, e.Section+": "+e.Message)
+				}
+			}
+			return strings.Join(why, "; ")
+		}
+		return ""
+	}
+	rows := func(title, section string, gs []sf.GrantDiff) {
+		if why := notCompared(section); why != "" {
+			fmt.Fprintf(&b, "%s: not compared (%s)\n\n", title, why)
+			return
+		}
 		if len(gs) == 0 {
 			fmt.Fprintf(&b, "%s: no differences\n\n", title)
 			return
 		}
-		fmt.Fprintf(&b, "%s (%d differences):\n", title, len(gs))
+		plural := "differences"
+		if len(gs) == 1 {
+			plural = "difference"
+		}
+		fmt.Fprintf(&b, "%s (%d %s):\n", title, len(gs), plural)
 		for _, g := range gs {
 			fmt.Fprintf(&b, "  %-30s  %-9s  A[%s]  B[%s]", g.Name, g.Perm, src(g.A), src(g.B))
 			if g.SameGrant {
@@ -51,9 +78,9 @@ func renderPermissionsDiffText(d sf.PermissionsDiff) string {
 		}
 		b.WriteString("\n")
 	}
-	rows("Object permissions", d.Objects)
+	rows("Object permissions", "objects", d.Objects)
 	if d.Object != "" {
-		rows("Fields on "+d.Object, d.Fields)
+		rows("Fields on "+d.Object, "fields", d.Fields)
 	}
 
 	if len(d.Errors) > 0 {

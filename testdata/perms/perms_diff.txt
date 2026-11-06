@@ -3,8 +3,8 @@ Permissions diff
   B: Bob Builder  (bob@acme.example)
 
 Assignments only A:
-  Sales Ops
   Data Steward
+  Sales Ops
 
 System overrides:
   Modify All Data   A[Data Steward]  B[-]
@@ -12,7 +12,7 @@ System overrides:
 Object permissions (4 differences):
   Account                         create     A[Sales Ops]  B[-]
   Account                         edit       A[Sales Ops]  B[-]
-  Case                            read       A[Sales Ops+Reports Viewer]  B[-]
+  Case                            read       A[Reports Viewer+Sales Ops]  B[-]
   Case                            edit       A[Sales Ops]  B[-]
 
 Fields on Account (3 differences):

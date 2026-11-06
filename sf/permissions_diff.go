@@ -1,7 +1,6 @@
 package sf
 
 import (
-	"reflect"
 	"sort"
 )
 
@@ -14,11 +13,14 @@ type PermissionsDiff struct {
 	Objects     []GrantDiff     `json:"objects"`
 	Fields      []GrantDiff     `json:"fields"`
 	Object      string          `json:"object,omitempty"`
-	Different   bool            `json:"different"`
-	Errors      []SectionError  `json:"errors"`
+	// NotCompared lists sections ("objects", "fields") skipped because one
+	// side failed to load them; a failure on one side invalidates the diff.
+	NotCompared []string       `json:"notCompared"`
+	Different   bool           `json:"different"`
+	Errors      []SectionError `json:"errors"`
 }
 
-// AssignmentsDiff lists source labels assigned to one user only.
+// AssignmentsDiff lists source labels assigned to one user only (by Id).
 type AssignmentsDiff struct {
 	OnlyA []string `json:"onlyA"`
 	OnlyB []string `json:"onlyB"`
@@ -26,9 +28,10 @@ type AssignmentsDiff struct {
 
 // OverrideDiff is a system permission whose sources differ between the users.
 type OverrideDiff struct {
-	Name string   `json:"name"` // modifyAllData | viewAllData
-	A    []string `json:"a"`
-	B    []string `json:"b"`
+	Name      string   `json:"name"` // modifyAllData | viewAllData
+	A         []string `json:"a"`
+	B         []string `json:"b"`
+	SameGrant bool     `json:"sameGrant"` // both have it, from different sources
 }
 
 // GrantDiff is one (name, permission) where the users differ in grant or in
@@ -38,13 +41,14 @@ type GrantDiff struct {
 	Perm      string   `json:"perm"`
 	A         []string `json:"a"`
 	B         []string `json:"b"`
-	SameGrant bool     `json:"sameGrant,omitempty"`
+	SameGrant bool     `json:"sameGrant"`
 }
 
 var permOrder = map[string]int{PermRead: 0, PermCreate: 1, PermEdit: 2, PermDelete: 3, PermViewAll: 4, PermModifyAll: 5}
 
 // DiffPermissions diffs two reports built for the same org (and the same
-// --object, if any). Identical grants produce no rows.
+// --object, if any). Source lists are compared as sets, since SOQL does not
+// guarantee their order, and every list in the result is sorted.
 func DiffPermissions(a, b PermissionsReport) PermissionsDiff {
 	d := PermissionsDiff{
 		A: a.User, B: b.User,
@@ -53,45 +57,64 @@ func DiffPermissions(a, b PermissionsReport) PermissionsDiff {
 		Objects:     []GrantDiff{},
 		Fields:      []GrantDiff{},
 		Object:      a.Object,
+		NotCompared: []string{},
 		Errors:      []SectionError{},
 	}
 	if d.Object == "" {
 		d.Object = b.Object
 	}
 
-	// Assignments, by source label.
-	labelSet := func(as []PermSetAssignment) map[string]bool {
+	// Assignments by permission set Id; labels are for display only.
+	ids := func(as []PermSetAssignment) map[string]bool {
 		m := map[string]bool{}
 		for _, x := range as {
-			m[sourceLabel(x)] = true
+			m[x.PermSetID] = true
 		}
 		return m
 	}
-	la, lb := labelSet(a.Assignments), labelSet(b.Assignments)
+	ia, ib := ids(a.Assignments), ids(b.Assignments)
 	for _, x := range a.Assignments {
-		if l := sourceLabel(x); !lb[l] && !contains(d.Assignments.OnlyA, l) {
-			d.Assignments.OnlyA = append(d.Assignments.OnlyA, l)
+		if !ib[x.PermSetID] {
+			d.Assignments.OnlyA = append(d.Assignments.OnlyA, sourceLabel(x))
 		}
 	}
 	for _, x := range b.Assignments {
-		if l := sourceLabel(x); !la[l] && !contains(d.Assignments.OnlyB, l) {
-			d.Assignments.OnlyB = append(d.Assignments.OnlyB, l)
+		if !ia[x.PermSetID] {
+			d.Assignments.OnlyB = append(d.Assignments.OnlyB, sourceLabel(x))
 		}
 	}
+	sort.Strings(d.Assignments.OnlyA)
+	sort.Strings(d.Assignments.OnlyB)
 
 	// Overrides.
 	for _, o := range []struct {
 		name string
 		a, b []string
 	}{{"modifyAllData", a.Overrides.ModifyAllData, b.Overrides.ModifyAllData}, {"viewAllData", a.Overrides.ViewAllData, b.Overrides.ViewAllData}} {
-		if !sameStrings(o.a, o.b) {
-			d.Overrides = append(d.Overrides, OverrideDiff{Name: o.name, A: nonNil(o.a), B: nonNil(o.b)})
+		sa, sb := sortedSet(o.a), sortedSet(o.b)
+		if !equalStrings(sa, sb) {
+			d.Overrides = append(d.Overrides, OverrideDiff{Name: o.name, A: sa, B: sb, SameGrant: len(sa) > 0 && len(sb) > 0})
 		}
 	}
 
-	// Objects and fields.
-	d.Objects = diffGrants(objectGrants(a.Objects), objectGrants(b.Objects))
-	d.Fields = diffGrants(fieldGrants(a.Fields), fieldGrants(b.Fields))
+	// Objects and fields: skipped when either side failed to load them.
+	failed := map[string]bool{}
+	for _, e := range a.Errors {
+		failed[e.Section] = true
+	}
+	for _, e := range b.Errors {
+		failed[e.Section] = true
+	}
+	if failed["objects"] {
+		d.NotCompared = append(d.NotCompared, "objects")
+	} else {
+		d.Objects = diffGrants(objectGrants(a.Objects), objectGrants(b.Objects))
+	}
+	if failed["fields"] {
+		d.NotCompared = append(d.NotCompared, "fields")
+	} else {
+		d.Fields = diffGrants(fieldGrants(a.Fields), fieldGrants(b.Fields))
+	}
 
 	d.Different = len(d.Assignments.OnlyA)+len(d.Assignments.OnlyB)+len(d.Overrides)+len(d.Objects)+len(d.Fields) > 0
 
@@ -123,7 +146,7 @@ func fieldGrants(fps []FieldPerm) grants {
 	return g
 }
 
-// diffGrants emits one row per (name, perm) whose source lists differ.
+// diffGrants emits one row per (name, perm) whose source sets differ.
 func diffGrants(ga, gb grants) []GrantDiff {
 	names := map[string]bool{}
 	for n := range ga {
@@ -132,7 +155,7 @@ func diffGrants(ga, gb grants) []GrantDiff {
 	for n := range gb {
 		names[n] = true
 	}
-	var out []GrantDiff
+	out := []GrantDiff{}
 	for n := range names {
 		perms := map[string]bool{}
 		for p := range ga[n] {
@@ -142,8 +165,8 @@ func diffGrants(ga, gb grants) []GrantDiff {
 			perms[p] = true
 		}
 		for p := range perms {
-			sa, sb := nonNil(ga[n][p]), nonNil(gb[n][p])
-			if sameStrings(sa, sb) {
+			sa, sb := sortedSet(ga[n][p]), sortedSet(gb[n][p])
+			if equalStrings(sa, sb) {
 				continue
 			}
 			out = append(out, GrantDiff{Name: n, Perm: p, A: sa, B: sb, SameGrant: len(sa) > 0 && len(sb) > 0})
@@ -155,19 +178,29 @@ func diffGrants(ga, gb grants) []GrantDiff {
 		}
 		return permOrder[out[i].Perm] < permOrder[out[j].Perm]
 	})
-	if out == nil {
-		out = []GrantDiff{}
-	}
 	return out
 }
 
-func nonNil(s []string) []string {
-	if s == nil {
-		return []string{}
+// sortedSet returns a sorted, deduplicated, non-nil copy.
+func sortedSet(s []string) []string {
+	out := make([]string, 0, len(s))
+	for _, v := range s {
+		if !contains(out, v) {
+			out = append(out, v)
+		}
 	}
-	return s
+	sort.Strings(out)
+	return out
 }
 
-func sameStrings(a, b []string) bool {
-	return reflect.DeepEqual(nonNil(a), nonNil(b))
+func equalStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }

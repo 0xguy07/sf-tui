@@ -57,3 +57,17 @@ func TestRenderPermissionsDiffText_NoANSI(t *testing.T) {
 		t.Error("ANSI in output")
 	}
 }
+
+func TestRenderPermissionsDiffText_NotComparedAndPlural(t *testing.T) {
+	d := fixturePermsDiff(t)
+	d.Objects = []sf.GrantDiff{d.Objects[0]}
+	d.NotCompared = []string{"fields"}
+	d.Errors = []sf.SectionError{{Section: "b:fields", Message: "timeout"}}
+	out := renderPermissionsDiffText(d)
+	if !strings.Contains(out, "Object permissions (1 difference):") {
+		t.Errorf("plural handling:\n%s", out)
+	}
+	if !strings.Contains(out, "Fields on Account: not compared (b:fields: timeout)") {
+		t.Errorf("errored section should say not compared:\n%s", out)
+	}
+}
