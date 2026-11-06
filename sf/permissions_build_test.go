@@ -70,3 +70,86 @@ func TestLabelsOf(t *testing.T) {
 		t.Errorf("labelsOf = %v", m)
 	}
 }
+
+func testLabels(t *testing.T) map[string]string {
+	t.Helper()
+	as, _ := buildAssignments(permsRecords(t, "assignments.json"))
+	return labelsOf(as)
+}
+
+func TestBuildObjectPerms_Grants(t *testing.T) {
+	ops := buildObjectPerms(permsRecords(t, "objectperms.json"), testLabels(t))
+	byName := map[string]ObjectPerm{}
+	for _, o := range ops {
+		byName[o.SObject] = o
+	}
+	acc := byName["Account"]
+	if !reflect.DeepEqual(acc.Grants[PermRead], []string{"Profile: Sales User"}) ||
+		!reflect.DeepEqual(acc.Grants[PermCreate], []string{"Sales Ops"}) ||
+		!reflect.DeepEqual(acc.Grants[PermEdit], []string{"Sales Ops"}) ||
+		!reflect.DeepEqual(acc.Grants[PermDelete], []string{}) {
+		t.Errorf("Account grants = %v", acc.Grants)
+	}
+	if !reflect.DeepEqual(acc.Sources, []string{"Profile: Sales User", "Sales Ops"}) {
+		t.Errorf("Account sources = %v", acc.Sources)
+	}
+	if !acc.Read || !acc.Create || !acc.Edit || acc.Delete {
+		t.Errorf("Account booleans = %+v", acc)
+	}
+	if got := byName["Case"].Grants[PermRead]; !reflect.DeepEqual(got, []string{"Sales Ops", "Reports Viewer"}) {
+		t.Errorf("Case read grants = %v", got)
+	}
+}
+
+func TestBuildObjectPerms_NoGrantRow(t *testing.T) {
+	ops := buildObjectPerms(permsRecords(t, "objectperms.json"), testLabels(t))
+	var lead *ObjectPerm
+	for i := range ops {
+		if ops[i].SObject == "Lead" {
+			lead = &ops[i]
+		}
+	}
+	if lead == nil {
+		t.Fatal("Lead missing")
+	}
+	if len(lead.Sources) != 0 {
+		t.Errorf("Lead sources = %v, want none", lead.Sources)
+	}
+	for _, k := range []string{PermRead, PermCreate, PermEdit, PermDelete, PermViewAll, PermModifyAll} {
+		if v, ok := lead.Grants[k]; !ok || v == nil || len(v) != 0 {
+			t.Errorf("Lead Grants[%s] = %v (present=%v), want empty non-nil", k, v, ok)
+		}
+	}
+}
+
+func TestBuildObjectPerms_Sorted(t *testing.T) {
+	ops := buildObjectPerms(permsRecords(t, "objectperms.json"), testLabels(t))
+	var names []string
+	for _, o := range ops {
+		names = append(names, o.SObject)
+	}
+	if !reflect.DeepEqual(names, []string{"Account", "Case", "Lead"}) {
+		t.Errorf("order = %v", names)
+	}
+}
+
+func TestBuildFieldPerms(t *testing.T) {
+	fps := buildFieldPerms(permsRecords(t, "fieldperms.json"), testLabels(t))
+	if len(fps) != 2 || fps[0].Field != "Industry" || fps[1].Field != "Rating" {
+		t.Fatalf("fields = %+v", fps)
+	}
+	if !reflect.DeepEqual(fps[0].Grants[PermRead], []string{"Profile: Sales User", "Sales Ops"}) ||
+		!reflect.DeepEqual(fps[0].Grants[PermEdit], []string{"Sales Ops"}) {
+		t.Errorf("Industry grants = %v", fps[0].Grants)
+	}
+	if !reflect.DeepEqual(fps[1].Grants[PermEdit], []string{}) || !fps[1].Read || fps[1].Edit {
+		t.Errorf("Rating = %+v", fps[1])
+	}
+}
+
+func TestBuildFieldPerms_Empty(t *testing.T) {
+	fps := buildFieldPerms(permsRecords(t, "fieldperms_empty.json"), testLabels(t))
+	if fps == nil || len(fps) != 0 {
+		t.Errorf("want empty non-nil slice, got %#v", fps)
+	}
+}

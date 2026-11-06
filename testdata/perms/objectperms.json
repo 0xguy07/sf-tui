@@ -1,0 +1,75 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "ObjectPermissions"
+        },
+        "SobjectType": "Account",
+        "PermissionsRead": true,
+        "PermissionsCreate": false,
+        "PermissionsEdit": false,
+        "PermissionsDelete": false,
+        "PermissionsViewAllRecords": false,
+        "PermissionsModifyAllRecords": false,
+        "ParentId": "0PS000000000001AAA"
+      },
+      {
+        "attributes": {
+          "type": "ObjectPermissions"
+        },
+        "SobjectType": "Account",
+        "PermissionsRead": false,
+        "PermissionsCreate": true,
+        "PermissionsEdit": true,
+        "PermissionsDelete": false,
+        "PermissionsViewAllRecords": false,
+        "PermissionsModifyAllRecords": false,
+        "ParentId": "0PS000000000002AAA"
+      },
+      {
+        "attributes": {
+          "type": "ObjectPermissions"
+        },
+        "SobjectType": "Case",
+        "PermissionsRead": true,
+        "PermissionsCreate": false,
+        "PermissionsEdit": true,
+        "PermissionsDelete": false,
+        "PermissionsViewAllRecords": false,
+        "PermissionsModifyAllRecords": false,
+        "ParentId": "0PS000000000002AAA"
+      },
+      {
+        "attributes": {
+          "type": "ObjectPermissions"
+        },
+        "SobjectType": "Case",
+        "PermissionsRead": true,
+        "PermissionsCreate": false,
+        "PermissionsEdit": false,
+        "PermissionsDelete": false,
+        "PermissionsViewAllRecords": false,
+        "PermissionsModifyAllRecords": false,
+        "ParentId": "0PS000000000004AAA"
+      },
+      {
+        "attributes": {
+          "type": "ObjectPermissions"
+        },
+        "SobjectType": "Lead",
+        "PermissionsRead": false,
+        "PermissionsCreate": false,
+        "PermissionsEdit": false,
+        "PermissionsDelete": false,
+        "PermissionsViewAllRecords": false,
+        "PermissionsModifyAllRecords": false,
+        "ParentId": "0PS000000000001AAA"
+      }
+    ],
+    "totalSize": 5,
+    "done": true
+  },
+  "warnings": []
+}

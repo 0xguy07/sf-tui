@@ -1,5 +1,10 @@
 package sf
 
+import (
+	"sort"
+	"strings"
+)
+
 // Pure builders that turn decoded SOQL records into report pieces. No I/O.
 
 // sourceLabel is the label a permission grant is attributed to: the
@@ -54,4 +59,114 @@ func labelsOf(as []PermSetAssignment) map[string]string {
 		m[a.PermSetID] = sourceLabel(a)
 	}
 	return m
+}
+
+// Permission keys used in ObjectPerm.Grants and FieldPerm.Grants.
+const (
+	PermRead      = "read"
+	PermCreate    = "create"
+	PermEdit      = "edit"
+	PermDelete    = "delete"
+	PermViewAll   = "viewAll"
+	PermModifyAll = "modifyAll"
+)
+
+var objectPermKeys = []string{PermRead, PermCreate, PermEdit, PermDelete, PermViewAll, PermModifyAll}
+var fieldPermKeys = []string{PermRead, PermEdit}
+
+func emptyGrants(keys []string) map[string][]string {
+	m := make(map[string][]string, len(keys))
+	for _, k := range keys {
+		m[k] = []string{}
+	}
+	return m
+}
+
+// grant records that label grants perm, deduped, and marks any-grant in sources.
+func grant(grants map[string][]string, sources *[]string, perm, label string) {
+	if label == "" {
+		return
+	}
+	if !contains(grants[perm], label) {
+		grants[perm] = append(grants[perm], label)
+	}
+	if !contains(*sources, label) {
+		*sources = append(*sources, label)
+	}
+}
+
+// buildObjectPerms folds ObjectPermissions records into one ObjectPerm per
+// sobject with per-permission sources, sorted by sobject name.
+func buildObjectPerms(recs []map[string]any, labels map[string]string) []ObjectPerm {
+	byObject := map[string]*ObjectPerm{}
+	for _, rec := range recs {
+		name := stringField(rec, "SobjectType")
+		if name == "" {
+			continue
+		}
+		op, ok := byObject[name]
+		if !ok {
+			op = &ObjectPerm{SObject: name, Sources: []string{}, Grants: emptyGrants(objectPermKeys)}
+			byObject[name] = op
+		}
+		label := labels[stringField(rec, "ParentId")]
+		for _, f := range []struct {
+			col  string
+			perm string
+			flag *bool
+		}{
+			{"PermissionsRead", PermRead, &op.Read},
+			{"PermissionsCreate", PermCreate, &op.Create},
+			{"PermissionsEdit", PermEdit, &op.Edit},
+			{"PermissionsDelete", PermDelete, &op.Delete},
+			{"PermissionsViewAllRecords", PermViewAll, &op.ViewAll},
+			{"PermissionsModifyAllRecords", PermModifyAll, &op.ModifyAll},
+		} {
+			if boolField(rec, f.col) {
+				*f.flag = true
+				grant(op.Grants, &op.Sources, f.perm, label)
+			}
+		}
+	}
+	out := make([]ObjectPerm, 0, len(byObject))
+	for _, v := range byObject {
+		out = append(out, *v)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].SObject < out[j].SObject })
+	return out
+}
+
+// buildFieldPerms folds FieldPermissions records ("Obj.Field") into one
+// FieldPerm per field with per-permission sources, sorted by field name.
+func buildFieldPerms(recs []map[string]any, labels map[string]string) []FieldPerm {
+	byField := map[string]*FieldPerm{}
+	for _, rec := range recs {
+		name := stringField(rec, "Field")
+		if i := strings.IndexByte(name, '.'); i >= 0 {
+			name = name[i+1:]
+		}
+		if name == "" {
+			continue
+		}
+		fp, ok := byField[name]
+		if !ok {
+			fp = &FieldPerm{Field: name, Sources: []string{}, Grants: emptyGrants(fieldPermKeys)}
+			byField[name] = fp
+		}
+		label := labels[stringField(rec, "ParentId")]
+		if boolField(rec, "PermissionsRead") {
+			fp.Read = true
+			grant(fp.Grants, &fp.Sources, PermRead, label)
+		}
+		if boolField(rec, "PermissionsEdit") {
+			fp.Edit = true
+			grant(fp.Grants, &fp.Sources, PermEdit, label)
+		}
+	}
+	out := make([]FieldPerm, 0, len(byField))
+	for _, v := range byField {
+		out = append(out, *v)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Field < out[j].Field })
+	return out
 }

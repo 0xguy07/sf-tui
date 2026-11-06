@@ -38,14 +38,17 @@ type Overrides struct {
 }
 
 type ObjectPerm struct {
-	SObject   string
-	Read      bool
-	Create    bool
-	Edit      bool
-	Delete    bool
-	ViewAll   bool
-	ModifyAll bool
-	Sources   []string // perm set / profile labels granting any of these
+	SObject   string   `json:"sobject"`
+	Read      bool     `json:"read"`
+	Create    bool     `json:"create"`
+	Edit      bool     `json:"edit"`
+	Delete    bool     `json:"delete"`
+	ViewAll   bool     `json:"viewAll"`
+	ModifyAll bool     `json:"modifyAll"`
+	Sources   []string `json:"sources"` // perm set / profile labels granting any of these
+	// Grants lists, per permission (PermRead … PermModifyAll), the sources
+	// that grant it. Every key is present; an empty slice means not granted.
+	Grants map[string][]string `json:"grants"`
 }
 
 type PermissionsLoadedMsg struct {
@@ -55,10 +58,12 @@ type PermissionsLoadedMsg struct {
 }
 
 type FieldPerm struct {
-	Field   string // API name without sobject prefix (e.g. "Industry")
-	Read    bool
-	Edit    bool
-	Sources []string
+	Field   string   `json:"field"` // API name without sobject prefix (e.g. "Industry")
+	Read    bool     `json:"read"`
+	Edit    bool     `json:"edit"`
+	Sources []string `json:"sources"`
+	// Grants: PermRead and PermEdit → sources. Every key present.
+	Grants map[string][]string `json:"grants"`
 }
 
 type FieldPermissionsLoadedMsg struct {
