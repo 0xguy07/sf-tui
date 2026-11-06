@@ -23,10 +23,18 @@ type UsersLoadedMsg struct {
 }
 
 type PermSetAssignment struct {
-	PermSetID    string
-	PermSetLabel string
-	IsProfile    bool
-	ProfileName  string // when IsProfile
+	PermSetID    string `json:"permSetId"`
+	PermSetLabel string `json:"label"`
+	IsProfile    bool   `json:"isProfile"`
+	ProfileName  string `json:"profileName,omitempty"` // when IsProfile
+	GroupLabel   string `json:"groupLabel,omitempty"`  // PermissionSetGroup.MasterLabel when assigned via a group
+}
+
+// Overrides are system permissions on an assigned permission set that
+// override object permissions. They are reported, not applied to Objects.
+type Overrides struct {
+	ModifyAllData []string `json:"modifyAllData"`
+	ViewAllData   []string `json:"viewAllData"`
 }
 
 type ObjectPerm struct {
