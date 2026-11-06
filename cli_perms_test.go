@@ -261,3 +261,28 @@ func TestPermsDiff_JSONRoundTrip(t *testing.T) {
 		t.Errorf("round trip failed or shape wrong: objects=%d", len(got.Objects))
 	}
 }
+
+func TestPermsDiff_ResolvesBothBeforeFetching(t *testing.T) {
+	d, _ := diffDeps(t)
+	fetched := 0
+	inner := d.perms
+	d.perms = func(org string, u sf.UserBrief, object string) (sf.PermissionsReport, error) { fetched++; return inner(org, u, object) }
+	if code, _, _ := runPermsCapture(t, d, "alex@acme.example", "--diff", "nobody", "--org", "x"); code != 2 || fetched != 0 {
+		t.Errorf("a bad --diff user must fail before any report is fetched: exit=%d fetched=%d", code, fetched)
+	}
+}
+
+func TestPermsDiff_EmptyDiffValueExit2(t *testing.T) {
+	d, _ := diffDeps(t)
+	if code, _, se := runPermsCapture(t, d, "alex@acme.example", "--diff", "", "--org", "x"); code != 2 || !strings.Contains(se, "--diff") {
+		t.Errorf("exit=%d stderr=%q", code, se)
+	}
+}
+
+func TestPermsDiff_JSONAlwaysHasSameGrant(t *testing.T) {
+	d, _ := diffDeps(t)
+	_, so, _ := runPermsCapture(t, d, "alex@acme.example", "--diff", "bob@acme.example", "--org", "x", "--format", "json")
+	if strings.Count(so, `"sameGrant"`) < 4 {
+		t.Errorf("sameGrant should be present on every object row:\n%s", so)
+	}
+}
