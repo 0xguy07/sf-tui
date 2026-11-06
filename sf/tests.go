@@ -54,11 +54,11 @@ func LoadTestClasses(orgAliasOrUser string) tea.Cmd {
 }
 
 type TestRunResult struct {
-	Pass   int
-	Fail   int
-	Skip   int
-	Total  int
-	Time   string
+	Pass     int
+	Fail     int
+	Skip     int
+	Total    int
+	Time     string
 	Failures []TestFailure
 	Coverage []ClassCoverage
 }
@@ -126,16 +126,16 @@ func RunTests(orgAliasOrUser string, classNames []string) tea.Cmd {
 type apexTestRaw struct {
 	Result struct {
 		Summary struct {
-			Outcome      string  `json:"outcome"`
-			TestsRan     int     `json:"testsRan"`
-			Passing      int     `json:"passing"`
-			Failing      int     `json:"failing"`
-			Skipped      int     `json:"skipped"`
+			Outcome           string `json:"outcome"`
+			TestsRan          int    `json:"testsRan"`
+			Passing           int    `json:"passing"`
+			Failing           int    `json:"failing"`
+			Skipped           int    `json:"skipped"`
 			TestExecutionTime string `json:"testExecutionTime"`
 		} `json:"summary"`
 		Tests []struct {
-			Outcome      string `json:"Outcome"`
-			ApexClass    struct {
+			Outcome   string `json:"Outcome"`
+			ApexClass struct {
 				Name string `json:"Name"`
 			} `json:"ApexClass"`
 			MethodName string `json:"MethodName"`
@@ -143,9 +143,9 @@ type apexTestRaw struct {
 			StackTrace string `json:"StackTrace"`
 		} `json:"tests"`
 		CodeCoverage []struct {
-			Name             string `json:"name"`
-			NumLinesCovered  int    `json:"numLinesCovered"`
-			NumLinesUncovered int   `json:"numLinesUncovered"`
+			Name              string `json:"name"`
+			NumLinesCovered   int    `json:"numLinesCovered"`
+			NumLinesUncovered int    `json:"numLinesUncovered"`
 		} `json:"codecoverage"`
 	} `json:"result"`
 }

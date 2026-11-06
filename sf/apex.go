@@ -10,12 +10,12 @@ import (
 )
 
 type ApexDoneMsg struct {
-	Success         bool
-	Compiled        bool
-	CompileProblem  string
-	ExceptionMsg    string
-	ExceptionStack  string
-	Logs            string
+	Success        bool
+	Compiled       bool
+	CompileProblem string
+	ExceptionMsg   string
+	ExceptionStack string
+	Logs           string
 }
 
 type apexRunResult struct {

@@ -66,11 +66,11 @@ func (l *Logs) refreshInspector() {
 }
 
 var (
-	logTime    = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
-	logKind    = lipgloss.NewStyle().Foreground(lipgloss.Color("117"))
-	logDebug   = lipgloss.NewStyle().Foreground(lipgloss.Color("220")).Bold(true)
-	logErr     = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
-	logEnter   = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
+	logTime  = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	logKind  = lipgloss.NewStyle().Foreground(lipgloss.Color("117"))
+	logDebug = lipgloss.NewStyle().Foreground(lipgloss.Color("220")).Bold(true)
+	logErr   = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
+	logEnter = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
 )
 
 func renderInspector(events []sf.ApexEvent) string {

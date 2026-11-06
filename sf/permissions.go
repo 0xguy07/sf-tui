@@ -30,14 +30,14 @@ type PermSetAssignment struct {
 }
 
 type ObjectPerm struct {
-	SObject       string
-	Read          bool
-	Create        bool
-	Edit          bool
-	Delete        bool
-	ViewAll       bool
-	ModifyAll     bool
-	Sources       []string // perm set / profile labels granting any of these
+	SObject   string
+	Read      bool
+	Create    bool
+	Edit      bool
+	Delete    bool
+	ViewAll   bool
+	ModifyAll bool
+	Sources   []string // perm set / profile labels granting any of these
 }
 
 type PermissionsLoadedMsg struct {
@@ -54,9 +54,9 @@ type FieldPerm struct {
 }
 
 type FieldPermissionsLoadedMsg struct {
-	User       UserBrief
-	SObject    string
-	Fields     []FieldPerm
+	User    UserBrief
+	SObject string
+	Fields  []FieldPerm
 }
 
 func soqlEscape(s string) string {

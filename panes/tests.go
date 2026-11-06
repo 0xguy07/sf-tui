@@ -23,8 +23,8 @@ func (i testItem) Title() string {
 	}
 	return "  " + i.c.Name
 }
-func (i testItem) Description() string  { return i.c.ID }
-func (i testItem) FilterValue() string  { return i.c.Name }
+func (i testItem) Description() string { return i.c.ID }
+func (i testItem) FilterValue() string { return i.c.Name }
 
 type Tests struct {
 	List     list.Model

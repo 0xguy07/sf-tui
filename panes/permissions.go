@@ -33,11 +33,11 @@ type Permissions struct {
 	users    []sf.UserBrief
 	loaded   bool
 
-	lastDetail   sf.PermissionsLoadedMsg // last object-perm load, replayed when FLS arrives
-	hasDetail    bool
-	flsObject    string
-	fls          []sf.FieldPerm
-	hasFLS       bool
+	lastDetail sf.PermissionsLoadedMsg // last object-perm load, replayed when FLS arrives
+	hasDetail  bool
+	flsObject  string
+	fls        []sf.FieldPerm
+	hasFLS     bool
 }
 
 func NewPermissions(width, height int) Permissions {

@@ -52,10 +52,10 @@ func NewQuery(width, height int) Query {
 	return Query{Area: ta}
 }
 
-func (q *Query) Focus() tea.Cmd   { return q.Area.Focus() }
-func (q *Query) Blur()            { q.Area.Blur() }
-func (q Query) Focused() bool     { return q.Area.Focused() }
-func (q Query) Value() string     { return q.Area.Value() }
+func (q *Query) Focus() tea.Cmd    { return q.Area.Focus() }
+func (q *Query) Blur()             { q.Area.Blur() }
+func (q Query) Focused() bool      { return q.Area.Focused() }
+func (q Query) Value() string      { return q.Area.Value() }
 func (q *Query) SetValue(s string) { q.Area.SetValue(s) }
 
 func (q Query) Update(msg tea.Msg) (Query, tea.Cmd) {

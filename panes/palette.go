@@ -24,8 +24,8 @@ func (c commandItem) Title() string {
 	}
 	return c.c.Label
 }
-func (c commandItem) Description() string  { return c.c.Help }
-func (c commandItem) FilterValue() string  { return c.c.Label + " " + c.c.Help + " " + c.c.ID }
+func (c commandItem) Description() string { return c.c.Help }
+func (c commandItem) FilterValue() string { return c.c.Label + " " + c.c.Help + " " + c.c.ID }
 
 type Palette struct {
 	List    list.Model

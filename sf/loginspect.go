@@ -6,13 +6,13 @@ import (
 
 // ApexEvent is one parsed entry from a debug log.
 type ApexEvent struct {
-	Time      string // raw HH:MM:SS.mmm
-	Kind      string // event name from log (CODE_UNIT_STARTED, METHOD_ENTRY, USER_DEBUG, …)
-	Detail    string // human-friendly summary, derived per kind
-	Depth     int    // tree depth assigned by ParseApexEvents
-	IsEnter   bool   // started/entry — pushes
-	IsExit    bool   // finished/exit — pops
-	IsHighlight bool // exception, USER_DEBUG, fatal
+	Time        string // raw HH:MM:SS.mmm
+	Kind        string // event name from log (CODE_UNIT_STARTED, METHOD_ENTRY, USER_DEBUG, …)
+	Detail      string // human-friendly summary, derived per kind
+	Depth       int    // tree depth assigned by ParseApexEvents
+	IsEnter     bool   // started/entry — pushes
+	IsExit      bool   // finished/exit — pops
+	IsHighlight bool   // exception, USER_DEBUG, fatal
 }
 
 // ParseApexEvents reads raw log lines and returns a flat, depth-annotated list.
