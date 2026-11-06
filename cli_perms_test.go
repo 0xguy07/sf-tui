@@ -191,3 +191,101 @@ func TestPerms_EmptyReport(t *testing.T) {
 		t.Errorf("exit=%d stdout=%q", code, so)
 	}
 }
+
+// diffDeps resolves "alex…" to Alex and "bob…" to Bob and serves the matching report.
+func diffDeps(t *testing.T) (cliDeps, *[]string) {
+	alex, bob := fixtureReportNamed(t, "report_account.json"), fixtureReportNamed(t, "report_bob.json")
+	resolved := &[]string{}
+	return cliDeps{
+		defaultOrg: func() (string, error) { return "", nil },
+		resolveUser: func(org, ident string) (sf.UserBrief, error) {
+			*resolved = append(*resolved, ident)
+			switch {
+			case strings.HasPrefix(ident, "alex"):
+				return alex.User, nil
+			case strings.HasPrefix(ident, "bob"):
+				return bob.User, nil
+			case ident == "Alex Admin":
+				return sf.UserBrief{}, &sf.ErrAmbiguousUser{Ident: ident, Candidates: []sf.UserBrief{alex.User, {Name: "Alex Admin", Username: "alex2@acme.example", ID: "005000000000009AAA"}}}
+			}
+			return sf.UserBrief{}, sf.ErrUserNotFound
+		},
+		perms: func(org string, user sf.UserBrief, object string) (sf.PermissionsReport, error) {
+			if user.ID == bob.User.ID {
+				return bob, nil
+			}
+			return alex, nil
+		},
+	}, resolved
+}
+
+func TestPermsDiff_TextMatchesRenderer(t *testing.T) {
+	d, resolved := diffDeps(t)
+	code, so, se := runPermsCapture(t, d, "alex@acme.example", "--diff", "bob@acme.example", "--org", "x", "--object", "Account")
+	if code != 0 {
+		t.Fatalf("exit %d: %s", code, se)
+	}
+	if so != renderPermissionsDiffText(fixturePermsDiff(t)) {
+		t.Error("text differs from renderer")
+	}
+	if len(*resolved) != 2 {
+		t.Errorf("both users should be resolved, got %v", *resolved)
+	}
+}
+
+func TestPermsDiff_SameUserExit2(t *testing.T) {
+	d, _ := diffDeps(t)
+	// different identifiers, same resolved Id
+	if code, _, se := runPermsCapture(t, d, "alex@acme.example", "--diff", "alex", "--org", "x"); code != 2 || !strings.Contains(se, "same user") {
+		t.Errorf("exit=%d stderr=%q", code, se)
+	}
+}
+
+func TestPermsDiff_AmbiguousBExit2(t *testing.T) {
+	d, _ := diffDeps(t)
+	if code, so, se := runPermsCapture(t, d, "alex@acme.example", "--diff", "Alex Admin", "--org", "x"); code != 2 || so != "" || !strings.Contains(se, "alex2@acme.example") {
+		t.Errorf("exit=%d stdout=%q stderr=%q", code, so, se)
+	}
+}
+
+func TestPermsDiff_JSONRoundTrip(t *testing.T) {
+	d, _ := diffDeps(t)
+	_, so, _ := runPermsCapture(t, d, "alex@acme.example", "--diff", "bob@acme.example", "--org", "x", "--object", "Account", "--format", "json")
+	var got sf.PermissionsDiff
+	if err := json.Unmarshal([]byte(so), &got); err != nil {
+		t.Fatal(err)
+	}
+	x, _ := json.Marshal(got)
+	y, _ := json.Marshal(fixturePermsDiff(t))
+	if !bytes.Equal(x, y) || len(got.Objects) != 4 || !got.Different {
+		t.Errorf("round trip failed or shape wrong: objects=%d", len(got.Objects))
+	}
+}
+
+func TestPermsDiff_ResolvesBothBeforeFetching(t *testing.T) {
+	d, _ := diffDeps(t)
+	fetched := 0
+	inner := d.perms
+	d.perms = func(org string, u sf.UserBrief, object string) (sf.PermissionsReport, error) {
+		fetched++
+		return inner(org, u, object)
+	}
+	if code, _, _ := runPermsCapture(t, d, "alex@acme.example", "--diff", "nobody", "--org", "x"); code != 2 || fetched != 0 {
+		t.Errorf("a bad --diff user must fail before any report is fetched: exit=%d fetched=%d", code, fetched)
+	}
+}
+
+func TestPermsDiff_EmptyDiffValueExit2(t *testing.T) {
+	d, _ := diffDeps(t)
+	if code, _, se := runPermsCapture(t, d, "alex@acme.example", "--diff", "", "--org", "x"); code != 2 || !strings.Contains(se, "--diff") {
+		t.Errorf("exit=%d stderr=%q", code, se)
+	}
+}
+
+func TestPermsDiff_JSONAlwaysHasSameGrant(t *testing.T) {
+	d, _ := diffDeps(t)
+	_, so, _ := runPermsCapture(t, d, "alex@acme.example", "--diff", "bob@acme.example", "--org", "x", "--format", "json")
+	if strings.Count(so, `"sameGrant"`) < 4 {
+		t.Errorf("sameGrant should be present on every object row:\n%s", so)
+	}
+}

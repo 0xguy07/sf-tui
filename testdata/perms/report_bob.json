@@ -1,0 +1,88 @@
+{
+  "user": {
+    "id": "005000000000003AAA",
+    "name": "Bob Builder",
+    "username": "bob@acme.example",
+    "isActive": true,
+    "profile": "Sales User"
+  },
+  "assignments": [
+    {
+      "permSetId": "0PS000000000001AAA",
+      "label": "X00e000000000001",
+      "isProfile": true,
+      "profileName": "Sales User"
+    },
+    {
+      "permSetId": "0PS000000000004AAA",
+      "label": "Reports Viewer",
+      "isProfile": false
+    }
+  ],
+  "overrides": {
+    "modifyAllData": [],
+    "viewAllData": [
+      "Reports Viewer"
+    ]
+  },
+  "objects": [
+    {
+      "sobject": "Account",
+      "read": true,
+      "create": false,
+      "edit": false,
+      "delete": false,
+      "viewAll": false,
+      "modifyAll": false,
+      "sources": [
+        "Profile: Sales User"
+      ],
+      "grants": {
+        "read": [
+          "Profile: Sales User"
+        ],
+        "create": [],
+        "edit": [],
+        "delete": [],
+        "viewAll": [],
+        "modifyAll": []
+      }
+    },
+    {
+      "sobject": "Lead",
+      "read": false,
+      "create": false,
+      "edit": false,
+      "delete": false,
+      "viewAll": false,
+      "modifyAll": false,
+      "sources": [],
+      "grants": {
+        "read": [],
+        "create": [],
+        "edit": [],
+        "delete": [],
+        "viewAll": [],
+        "modifyAll": []
+      }
+    }
+  ],
+  "object": "Account",
+  "fields": [
+    {
+      "field": "Industry",
+      "read": true,
+      "edit": false,
+      "sources": [
+        "Profile: Sales User"
+      ],
+      "grants": {
+        "read": [
+          "Profile: Sales User"
+        ],
+        "edit": []
+      }
+    }
+  ],
+  "errors": []
+}

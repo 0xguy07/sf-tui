@@ -82,7 +82,7 @@ func (l Limits) render() string {
 		pct := lim.Pct()
 		bar := renderBar(barW, pct)
 		pctStr := fmt.Sprintf("%3d%%", int(pct*100))
-		usage := fmt.Sprintf("%s / %s", humanInt(lim.Used()), humanInt(lim.Max))
+		usage := fmt.Sprintf("%s / %s", sf.HumanInt(lim.Used()), sf.HumanInt(lim.Max))
 
 		fmt.Fprintf(&b, "%-*s  %s  %s  %s\n",
 			nameW,
@@ -117,19 +117,6 @@ func renderBar(width int, pct float64) string {
 		return limitYellow.Render(bar)
 	default:
 		return limitGreen.Render(bar)
-	}
-}
-
-func humanInt(n int) string {
-	switch {
-	case n >= 1_000_000_000:
-		return fmt.Sprintf("%.1fB", float64(n)/1_000_000_000)
-	case n >= 1_000_000:
-		return fmt.Sprintf("%.1fM", float64(n)/1_000_000)
-	case n >= 10_000:
-		return fmt.Sprintf("%.1fK", float64(n)/1_000)
-	default:
-		return fmt.Sprintf("%d", n)
 	}
 }
 

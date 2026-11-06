@@ -18,8 +18,9 @@ func runPerms(args []string, stdout, stderr io.Writer, d cliDeps) int {
 	fs := flag.NewFlagSet("perms", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.Usage = func() {}
-	var org, object, format, timeout string
+	var org, object, format, timeout, diffIdent string
 	fs.StringVar(&timeout, "timeout", "", "deadline per sf call")
+	fs.StringVar(&diffIdent, "diff", "", "compare against this user")
 	fs.StringVar(&org, "org", "", "org alias or username")
 	fs.StringVar(&org, "o", "", "org alias or username (shorthand)")
 	fs.StringVar(&object, "object", "", "sobject for field-level permissions")
@@ -56,23 +57,63 @@ func runPerms(args []string, stdout, stderr io.Writer, d cliDeps) int {
 		return code
 	}
 
-	user, err := d.resolveUser(org, ident)
-	if err != nil {
-		fmt.Fprintf(errw, "%v\n", err)
-		var amb *sf.ErrAmbiguousUser
-		if errors.Is(err, sf.ErrUserNotFound) || errors.As(err, &amb) {
-			return 2
+	diffSet := false
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == "diff" {
+			diffSet = true
 		}
-		return 1
+	})
+	diffIdent = strings.TrimSpace(diffIdent)
+	if diffSet && diffIdent == "" {
+		fmt.Fprintln(errw, "--diff needs a user (Id, username or exact name)")
+		return 2
 	}
 
-	r, err := d.perms(org, user, strings.TrimSpace(object))
+	resolve := func(ident string) (sf.UserBrief, int) {
+		u, err := d.resolveUser(org, ident)
+		if err != nil {
+			fmt.Fprintf(errw, "%v\n", err)
+			var amb *sf.ErrAmbiguousUser
+			if errors.Is(err, sf.ErrUserNotFound) || errors.As(err, &amb) {
+				return u, 2
+			}
+			return u, 1
+		}
+		return u, 0
+	}
+	user, code := resolve(ident)
+	if code != 0 {
+		return code
+	}
+	var other sf.UserBrief
+	if diffIdent != "" {
+		// Resolve both users before fetching anything, so a bad --diff fails fast.
+		if other, code = resolve(diffIdent); code != 0 {
+			return code
+		}
+		if other.ID == user.ID {
+			fmt.Fprintf(errw, "--diff names the same user (%s)\n", user.Username)
+			return 2
+		}
+	}
+
+	object = strings.TrimSpace(object)
+	r, err := d.perms(org, user, object)
 	if err != nil {
 		fmt.Fprintf(errw, "%v\n", err)
 		return 1
 	}
 	if r.Fields == nil {
 		r.Fields = []sf.FieldPerm{} // never null in JSON
+	}
+	if diffIdent != "" {
+		rb, err := d.perms(org, other, object)
+		if err != nil {
+			fmt.Fprintf(errw, "%v\n", err)
+			return 1
+		}
+		diff := sf.DiffPermissions(r, rb)
+		return writeReport(stdout, stderr, errw, format, diff, func() string { return renderPermissionsDiffText(diff) }, diff.Errors)
 	}
 	return writeReport(stdout, stderr, errw, format, r, func() string { return renderPermissionsText(r) }, r.Errors)
 }

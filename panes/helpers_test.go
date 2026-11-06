@@ -17,21 +17,6 @@ func TestItoa(t *testing.T) {
 	}
 }
 
-func TestHumanInt(t *testing.T) {
-	cases := map[int]string{
-		0:             "0",
-		9999:          "9999",
-		10_000:        "10.0K",
-		1_500_000:     "1.5M",
-		2_000_000_000: "2.0B",
-	}
-	for n, want := range cases {
-		if got := humanInt(n); got != want {
-			t.Errorf("humanInt(%d) = %q, want %q", n, got, want)
-		}
-	}
-}
-
 func TestCompactRanges(t *testing.T) {
 	cases := []struct {
 		in   []int
