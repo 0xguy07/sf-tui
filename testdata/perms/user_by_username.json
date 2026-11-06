@@ -1,0 +1,25 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "User"
+        },
+        "Id": "005000000000001AAA",
+        "Name": "Alex Admin",
+        "Username": "alex@acme.example",
+        "IsActive": true,
+        "Profile": {
+          "attributes": {
+            "type": "Profile"
+          },
+          "Name": "System Administrator"
+        }
+      }
+    ],
+    "totalSize": 1,
+    "done": true
+  },
+  "warnings": []
+}

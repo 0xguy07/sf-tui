@@ -1,0 +1,40 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "User"
+        },
+        "Id": "005000000000001AAA",
+        "Name": "Alex Admin",
+        "Username": "alex@acme.example",
+        "IsActive": true,
+        "Profile": {
+          "attributes": {
+            "type": "Profile"
+          },
+          "Name": "System Administrator"
+        }
+      },
+      {
+        "attributes": {
+          "type": "User"
+        },
+        "Id": "005000000000002AAA",
+        "Name": "Alex Admin",
+        "Username": "alex.admin@acme.example",
+        "IsActive": false,
+        "Profile": {
+          "attributes": {
+            "type": "Profile"
+          },
+          "Name": "Standard User"
+        }
+      }
+    ],
+    "totalSize": 2,
+    "done": true
+  },
+  "warnings": []
+}

@@ -11,11 +11,24 @@ import (
 )
 
 type UserBrief struct {
-	ID          string `json:"Id"`
-	Name        string `json:"Name"`
-	Username    string `json:"Username"`
-	IsActive    bool   `json:"IsActive"`
-	ProfileName string // flattened from Profile.Name
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Username    string `json:"username"`
+	IsActive    bool   `json:"isActive"`
+	ProfileName string `json:"profile,omitempty"` // flattened from Profile.Name
+}
+
+// PermissionsReport is the full answer to "what can this user do, and which
+// permission set or profile grants it?" for one user. Sections that fail to
+// load are recorded in Errors; the rest of the report stands.
+type PermissionsReport struct {
+	User        UserBrief           `json:"user"`
+	Assignments []PermSetAssignment `json:"assignments"`
+	Overrides   Overrides           `json:"overrides"`
+	Objects     []ObjectPerm        `json:"objects"`
+	Object      string              `json:"object,omitempty"` // the --object value, "" otherwise
+	Fields      []FieldPerm         `json:"fields,omitempty"` // only when Object != ""
+	Errors      []SectionError      `json:"errors"`
 }
 
 type UsersLoadedMsg struct {

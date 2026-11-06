@@ -1,6 +1,7 @@
 package sf
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 )
@@ -169,4 +170,83 @@ func buildFieldPerms(recs []map[string]any, labels map[string]string) []FieldPer
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Field < out[j].Field })
 	return out
+}
+
+const (
+	assignmentsSOQL = "SELECT PermissionSetId, PermissionSet.Label, PermissionSet.IsOwnedByProfile, PermissionSet.Profile.Name, " +
+		"PermissionSet.PermissionsModifyAllData, PermissionSet.PermissionsViewAllData, " +
+		"PermissionSetGroupId, PermissionSetGroup.MasterLabel " +
+		"FROM PermissionSetAssignment WHERE AssigneeId = '%s'"
+	assignmentsSOQLNoGroup = "SELECT PermissionSetId, PermissionSet.Label, PermissionSet.IsOwnedByProfile, PermissionSet.Profile.Name, " +
+		"PermissionSet.PermissionsModifyAllData, PermissionSet.PermissionsViewAllData " +
+		"FROM PermissionSetAssignment WHERE AssigneeId = '%s'"
+	objectPermsSOQL = "SELECT SobjectType, PermissionsRead, PermissionsCreate, PermissionsEdit, PermissionsDelete, " +
+		"PermissionsViewAllRecords, PermissionsModifyAllRecords, ParentId " +
+		"FROM ObjectPermissions WHERE ParentId IN (%s)"
+	fieldPermsSOQL = "SELECT Field, PermissionsRead, PermissionsEdit, ParentId " +
+		"FROM FieldPermissions WHERE SobjectType = '%s' AND ParentId IN (%s)"
+)
+
+func queryRecords(q SOQLRunner, org, soql string) ([]map[string]any, error) {
+	out, err := q.SOQL(org, soql, false)
+	if err != nil {
+		return nil, err
+	}
+	return decodeRecords(out)
+}
+
+// loadAssignments runs the assignments query, retrying without the
+// permission-set-group columns when the org's API rejects them.
+func loadAssignments(q SOQLRunner, org string, user UserBrief) ([]map[string]any, error) {
+	recs, err := queryRecords(q, org, fmt.Sprintf(assignmentsSOQL, soqlEscape(user.ID)))
+	if err != nil && strings.Contains(err.Error(), "PermissionSetGroup") {
+		recs, err = queryRecords(q, org, fmt.Sprintf(assignmentsSOQLNoGroup, soqlEscape(user.ID)))
+	}
+	return recs, err
+}
+
+// BuildPermissionsReport assembles the report for user. The error is non-nil
+// only when the assignments cannot be loaded; object and field permission
+// failures are recorded in Errors and the rest of the report is returned.
+func BuildPermissionsReport(q SOQLRunner, org string, user UserBrief, object string) (PermissionsReport, error) {
+	r := PermissionsReport{
+		User:        user,
+		Assignments: []PermSetAssignment{},
+		Overrides:   Overrides{ModifyAllData: []string{}, ViewAllData: []string{}},
+		Objects:     []ObjectPerm{},
+		Object:      object,
+		Errors:      []SectionError{},
+	}
+	recs, err := loadAssignments(q, org, user)
+	if err != nil {
+		return r, fmt.Errorf("assignments: %w", err)
+	}
+	r.Assignments, r.Overrides = buildAssignments(recs)
+	if len(r.Assignments) == 0 {
+		if object != "" {
+			r.Fields = []FieldPerm{}
+		}
+		return r, nil
+	}
+	labels := labelsOf(r.Assignments)
+	ids := make([]string, 0, len(r.Assignments))
+	for _, a := range r.Assignments {
+		ids = append(ids, "'"+soqlEscape(a.PermSetID)+"'")
+	}
+	in := strings.Join(ids, ",")
+
+	if recs, err := queryRecords(q, org, fmt.Sprintf(objectPermsSOQL, in)); err != nil {
+		r.Errors = append(r.Errors, SectionError{Section: "objects", Message: err.Error()})
+	} else {
+		r.Objects = buildObjectPerms(recs, labels)
+	}
+	if object != "" {
+		if recs, err := queryRecords(q, org, fmt.Sprintf(fieldPermsSOQL, soqlEscape(object), in)); err != nil {
+			r.Fields = []FieldPerm{}
+			r.Errors = append(r.Errors, SectionError{Section: "fields", Message: err.Error()})
+		} else {
+			r.Fields = buildFieldPerms(recs, labels)
+		}
+	}
+	return r, nil
 }
