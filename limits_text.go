@@ -19,8 +19,19 @@ func renderLimitsText(r sf.LimitsReport) string {
 	for _, n := range r.Breached {
 		breached[n] = true
 	}
-	for _, l := range r.Limits {
-		fmt.Fprintf(&b, "  %-40s  %s / %s   %.1f%%", l.Name, sf.HumanInt(l.Used), sf.HumanInt(l.Max), l.Pct)
+	nameW, usageW := 0, 0
+	usages := make([]string, len(r.Limits))
+	for i, l := range r.Limits {
+		usages[i] = sf.HumanInt(l.Used) + " / " + sf.HumanInt(l.Max)
+		if len(l.Name) > nameW {
+			nameW = len(l.Name)
+		}
+		if len(usages[i]) > usageW {
+			usageW = len(usages[i])
+		}
+	}
+	for i, l := range r.Limits {
+		fmt.Fprintf(&b, "  %-*s  %*s  %6.1f%%", nameW, l.Name, usageW, usages[i], l.Pct)
 		if breached[l.Name] {
 			b.WriteString("  ⚠")
 		}

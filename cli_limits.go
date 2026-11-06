@@ -67,7 +67,7 @@ func runLimits(args []string, stdout, stderr io.Writer, d cliDeps) int {
 		return 1
 	}
 	r := sf.BuildLimitsReport(limits, org, warn)
-	if code := writeReport(stdout, stderr, errw, format, r, func() string { return renderLimitsText(r) }, nil); code != 0 {
+	if code := writeReport(stdout, stderr, errw, format, r, func() string { return renderLimitsText(r) }, r.Errors); code != 0 {
 		return code
 	}
 	if warn != nil && len(r.Breached) > 0 {

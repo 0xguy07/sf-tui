@@ -1,9 +1,9 @@
 package sf
 
 import (
-	"math"
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 
 	tea "github.com/charmbracelet/bubbletea"
