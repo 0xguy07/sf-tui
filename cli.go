@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"io"
 
@@ -22,7 +21,7 @@ func prodDeps() cliDeps {
 		trace: func(org, id string, refresh bool) (sf.Trace, error) {
 			return sf.BuildTrace(sf.RESTFor(org), org, id, refresh)
 		},
-		defaultOrg: func() (string, error) { return "", errors.New("not implemented") },
+		defaultOrg: sf.DefaultTargetOrg,
 	}
 }
 
