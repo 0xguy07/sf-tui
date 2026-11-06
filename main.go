@@ -767,7 +767,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case sf.SchemaLoadedMsg:
-		m.compare.SetSchema(msg.Side, msg.Org, msg.SObjects)
+		m.compare.SetSchema(msg.Side, msg.Org, msg.SObjects, msg.Cached)
 		m.loading = false
 		m.status = fmt.Sprintf("loaded %d sobjects from %s", len(msg.SObjects), msg.Org)
 
