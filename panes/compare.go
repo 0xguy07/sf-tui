@@ -326,7 +326,7 @@ func renderFieldDiff(msg sf.FieldDiffLoadedMsg, aOrg, bOrg string) string {
 		case !inA && inB:
 			onlyB = append(onlyB, bf)
 		default:
-			diffs := fieldAttrDiff(af, bf)
+			diffs := sf.FieldAttrDiff(af, bf)
 			if len(diffs) == 0 {
 				same++
 			} else {
@@ -346,7 +346,7 @@ func renderFieldDiff(msg sf.FieldDiffLoadedMsg, aOrg, bOrg string) string {
 		fmt.Fprintln(&b, cmpDel.Render("Only in A (would be deleted on B):"))
 		for _, f := range onlyA {
 			fmt.Fprintf(&b, "  %s %s  %s\n",
-				cmpDel.Render("-"), f.Name, cmpDim.Render(fieldTypeLabel(f)))
+				cmpDel.Render("-"), f.Name, cmpDim.Render(sf.FieldTypeLabel(f)))
 		}
 		fmt.Fprintln(&b)
 	}
@@ -354,7 +354,7 @@ func renderFieldDiff(msg sf.FieldDiffLoadedMsg, aOrg, bOrg string) string {
 		fmt.Fprintln(&b, cmpAdd.Render("Only in B (would be added to A):"))
 		for _, f := range onlyB {
 			fmt.Fprintf(&b, "  %s %s  %s\n",
-				cmpAdd.Render("+"), f.Name, cmpDim.Render(fieldTypeLabel(f)))
+				cmpAdd.Render("+"), f.Name, cmpDim.Render(sf.FieldTypeLabel(f)))
 		}
 		fmt.Fprintln(&b)
 	}
@@ -372,107 +372,6 @@ func renderFieldDiff(msg sf.FieldDiffLoadedMsg, aOrg, bOrg string) string {
 		fmt.Fprintln(&b, cmpBoth.Render("No field-level differences."))
 	}
 	return b.String()
-}
-
-func fieldTypeLabel(f sf.Field) string {
-	t := f.Type
-	if f.Type == "reference" && len(f.ReferenceTo) > 0 {
-		t = "reference→" + strings.Join(f.ReferenceTo, ",")
-	}
-	if f.Length > 0 && (f.Type == "string" || f.Type == "textarea") {
-		t = fmt.Sprintf("%s(%d)", f.Type, f.Length)
-	}
-	tags := []string{}
-	if !f.Nillable {
-		tags = append(tags, "required")
-	}
-	if f.Custom {
-		tags = append(tags, "custom")
-	}
-	if !f.Updateable {
-		tags = append(tags, "read-only")
-	}
-	if len(tags) > 0 {
-		t += " [" + strings.Join(tags, ",") + "]"
-	}
-	return t
-}
-
-// fieldAttrDiff returns the human-readable list of attributes that differ
-// between the two sides of the same field. Empty slice means identical.
-func fieldAttrDiff(a, b sf.Field) []string {
-	var diffs []string
-	if a.Type != b.Type {
-		diffs = append(diffs, fmt.Sprintf("type: %s → %s", a.Type, b.Type))
-	}
-	if a.Length != b.Length {
-		diffs = append(diffs, fmt.Sprintf("length: %d → %d", a.Length, b.Length))
-	}
-	if a.Nillable != b.Nillable {
-		diffs = append(diffs, fmt.Sprintf("required: %v → %v", !a.Nillable, !b.Nillable))
-	}
-	if a.Updateable != b.Updateable {
-		diffs = append(diffs, fmt.Sprintf("updateable: %v → %v", a.Updateable, b.Updateable))
-	}
-	if a.Createable != b.Createable {
-		diffs = append(diffs, fmt.Sprintf("createable: %v → %v", a.Createable, b.Createable))
-	}
-	if a.Custom != b.Custom {
-		diffs = append(diffs, fmt.Sprintf("custom: %v → %v", a.Custom, b.Custom))
-	}
-	if a.CalculatedFormula != b.CalculatedFormula {
-		diffs = append(diffs, "formula changed")
-	}
-	if !sameRefs(a.ReferenceTo, b.ReferenceTo) {
-		diffs = append(diffs, fmt.Sprintf("references: %v → %v", a.ReferenceTo, b.ReferenceTo))
-	}
-	if !samePicklist(a.PicklistValues, b.PicklistValues) {
-		diffs = append(diffs, "picklist values differ")
-	}
-	return diffs
-}
-
-func sameRefs(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	x := append([]string(nil), a...)
-	y := append([]string(nil), b...)
-	sort.Strings(x)
-	sort.Strings(y)
-	for i := range x {
-		if x[i] != y[i] {
-			return false
-		}
-	}
-	return true
-}
-
-func samePicklist(a, b []sf.PicklistValue) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	mk := func(p []sf.PicklistValue) []string {
-		out := make([]string, 0, len(p))
-		for _, v := range p {
-			if v.Active {
-				out = append(out, v.Value)
-			}
-		}
-		sort.Strings(out)
-		return out
-	}
-	x := mk(a)
-	y := mk(b)
-	if len(x) != len(y) {
-		return false
-	}
-	for i := range x {
-		if x[i] != y[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func (c Compare) UpdateList(msg tea.Msg) (Compare, tea.Cmd) {

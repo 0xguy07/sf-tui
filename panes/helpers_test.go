@@ -166,30 +166,6 @@ func TestTypeDescription(t *testing.T) {
 	}
 }
 
-func TestSameRefs(t *testing.T) {
-	if !sameRefs(nil, nil) || !sameRefs([]string{"a", "b"}, []string{"b", "a"}) {
-		t.Error("expected equal")
-	}
-	if sameRefs([]string{"a"}, []string{"b"}) || sameRefs([]string{"a"}, []string{"a", "b"}) {
-		t.Error("expected different")
-	}
-	a := []string{"b", "a"}
-	sameRefs(a, []string{"a", "b"})
-	if a[0] != "b" {
-		t.Error("sameRefs must not reorder its inputs")
-	}
-}
-
-func TestSamePicklist(t *testing.T) {
-	pv := func(v string, active bool) sf.PicklistValue { return sf.PicklistValue{Value: v, Active: active} }
-	if !samePicklist([]sf.PicklistValue{pv("a", true), pv("b", true)}, []sf.PicklistValue{pv("b", true), pv("a", true)}) {
-		t.Error("order should not matter")
-	}
-	if samePicklist([]sf.PicklistValue{pv("a", true)}, []sf.PicklistValue{pv("b", true)}) {
-		t.Error("different values should differ")
-	}
-}
-
 func TestGlyphs(t *testing.T) {
 	for _, s := range []string{"only-a", "only-b", "both"} {
 		if strings.TrimSpace(diffGlyph(s)) == "" {

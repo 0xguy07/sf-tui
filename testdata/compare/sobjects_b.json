@@ -1,0 +1,35 @@
+{
+  "status": 0,
+  "result": {
+    "sobjects": [
+      {
+        "name": "Account",
+        "label": "Account",
+        "custom": false,
+        "queryable": true,
+        "keyPrefix": "001"
+      },
+      {
+        "name": "Contact",
+        "label": "Contact",
+        "custom": false,
+        "queryable": true,
+        "keyPrefix": "001"
+      },
+      {
+        "name": "NewThing__c",
+        "label": "NewThing",
+        "custom": true,
+        "queryable": true,
+        "keyPrefix": "a00"
+      },
+      {
+        "name": "Widget__c",
+        "label": "Widget",
+        "custom": true,
+        "queryable": true,
+        "keyPrefix": "a00"
+      }
+    ]
+  }
+}
