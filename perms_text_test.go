@@ -83,3 +83,11 @@ func TestRenderPermissionsText_ObjectNotFoundHint(t *testing.T) {
 		t.Error("hint must not appear when the object has permission rows")
 	}
 }
+
+func TestRenderPermissionsText_NoProfile(t *testing.T) {
+	r := fixtureReport(t)
+	r.User.ProfileName = ""
+	if out := renderPermissionsText(r); !strings.Contains(out, "Profile: (none)") {
+		t.Errorf("want 'Profile: (none)':\n%s", out)
+	}
+}

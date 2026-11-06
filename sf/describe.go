@@ -102,7 +102,7 @@ func fetchSObjects(org string, force bool) ([]SObjectSummary, bool, time.Time, e
 		"--json",
 	).Output()
 	if err != nil {
-		return nil, false, time.Time{}, fmt.Errorf("sf sobject list: %w", sfCommandError(out, err))
+		return nil, false, time.Time{}, sfCommandError("sf sobject list", out, err)
 	}
 	// `sf sobject list --json` returns {status, result: [names...]} in some versions,
 	// or a wrapped sobjects list in others. Try both.
@@ -164,7 +164,7 @@ func fetchDescribe(org, sobject string, force bool) (Describe, bool, time.Time, 
 		"--json",
 	).Output()
 	if err != nil {
-		return Describe{}, false, time.Time{}, fmt.Errorf("sf sobject describe %s: %w", sobject, sfCommandError(out, err))
+		return Describe{}, false, time.Time{}, sfCommandError("sf sobject describe "+sobject, out, err)
 	}
 	var r describeResult
 	if err := json.Unmarshal(out, &r); err != nil {

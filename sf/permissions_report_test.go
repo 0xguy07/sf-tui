@@ -167,18 +167,18 @@ func TestBuildPermissionsReport_NoAssignments(t *testing.T) {
 func TestSFCommandError(t *testing.T) {
 	exit := &exec.ExitError{ProcessState: &os.ProcessState{}}
 	stdoutJSON := []byte(`{"status":1,"name":"INVALID_FIELD","message":"Didn't understand relationship 'PermissionSetGroup' in field path.","exitCode":1}`)
-	got := sfCommandError(stdoutJSON, exit)
+	got := sfCommandError("sf data query", stdoutJSON, exit)
 	if got == nil || !strings.Contains(got.Error(), "INVALID_FIELD") || !strings.Contains(got.Error(), "PermissionSetGroup") {
 		t.Errorf("stdout JSON error should be surfaced with its name, got %v", got)
 	}
 	withStderr := &exec.ExitError{ProcessState: &os.ProcessState{}, Stderr: []byte("Warning: a newer version is available\n")}
-	if got := sfCommandError(stdoutJSON, withStderr); !strings.Contains(got.Error(), "INVALID_FIELD") {
+	if got := sfCommandError("sf data query", stdoutJSON, withStderr); !strings.Contains(got.Error(), "INVALID_FIELD") {
 		t.Errorf("stdout JSON must win over stderr warnings, got %v", got)
 	}
-	if got := sfCommandError(nil, withStderr); !strings.Contains(got.Error(), "newer version") {
+	if got := sfCommandError("sf data query", nil, withStderr); !strings.Contains(got.Error(), "newer version") {
 		t.Errorf("stderr used when stdout has no JSON message, got %v", got)
 	}
-	if got := sfCommandError(nil, errors.New("exec: \"sf\": executable file not found")); !strings.Contains(got.Error(), "executable file not found") || strings.Contains(got.Error(), "data query") {
-		t.Errorf("plain error wrapped without a command-specific prefix, got %v", got)
+	if got := sfCommandError("sf data query", nil, errors.New("exec: \"sf\": executable file not found")); !strings.HasPrefix(got.Error(), "sf data query: exec:") {
+		t.Errorf("plain error should carry exactly the given label, got %v", got)
 	}
 }

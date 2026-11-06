@@ -87,17 +87,18 @@ func usage() string {
   sftui compare <orgA> <orgB>   schema diff between two orgs (read-only)
   sftui --version               print the version
 
-common flags:
+why flags:
   --org, -o <alias|username>    org to query (default: the sf default target org)
   --format <text|json>          output format (default: text)
-
-why flags:
   --refresh                     bypass the 24-hour automation cache
 
 perms flags:
+  --org, -o <alias|username>    org to query (default: the sf default target org)
+  --format <text|json>          output format (default: text)
   --object <SObject>            also show field-level permissions on this object
 
-compare flags:
+compare flags (compare takes no --org: both orgs are positional):
+  --format <text|json>          output format (default: text)
   --object <SObject>            field-level diff for one object
   --fields                      field-level diff for every object present on both sides
   --custom-only                 with --fields: custom objects only

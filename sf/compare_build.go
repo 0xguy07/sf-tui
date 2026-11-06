@@ -112,6 +112,8 @@ func DiffSObjects(a, b []SObjectSummary) ([]ObjectState, Summary) {
 			st.State, st.Custom = StateBoth, as.Custom || bs.Custom
 			sum.Both++
 		}
+		// The names-only `sf sobject list` format never sets Custom.
+		st.Custom = st.Custom || IsCustomName(n)
 		out = append(out, st)
 	}
 	return out, sum
@@ -312,10 +314,10 @@ func BuildSchemaDiff(l SchemaLoader, aOrg, bOrg string, opts CompareOptions) (Sc
 	go func() { defer wg.Done(); rb.ss, rb.cached, rb.err = l.SObjects(bOrg, opts.Refresh) }()
 	wg.Wait()
 	if ra.err != nil {
-		return d, fmt.Errorf("sobjects-a: %w", ra.err)
+		return d, fmt.Errorf("sobjects-a (%s): %w", aOrg, ra.err)
 	}
 	if rb.err != nil {
-		return d, fmt.Errorf("sobjects-b: %w", rb.err)
+		return d, fmt.Errorf("sobjects-b (%s): %w", bOrg, rb.err)
 	}
 	d.A.SObjects, d.A.Cached = len(ra.ss), ra.cached
 	d.B.SObjects, d.B.Cached = len(rb.ss), rb.cached

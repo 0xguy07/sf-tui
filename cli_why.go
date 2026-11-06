@@ -59,7 +59,7 @@ func runWhy(args []string, stdout, stderr io.Writer, d cliDeps) int {
 
 	tr, err := d.trace(org, id, refresh)
 	if err != nil {
-		fmt.Fprintf(stderr, "why: %v\n", err)
+		fmt.Fprintf(stderr, "why: %s in %s: %v\n", id, org, err)
 		return 1
 	}
 
@@ -113,7 +113,7 @@ func splitPositionalN(args []string, n int) (positionals []string, rest []string
 		}
 		if strings.HasPrefix(a, "-") {
 			rest = append(rest, a)
-			if takesValue[a] && !strings.Contains(a, "=") && i+1 < len(args) {
+			if takesValue[a] && i+1 < len(args) {
 				i++
 				rest = append(rest, args[i])
 			}

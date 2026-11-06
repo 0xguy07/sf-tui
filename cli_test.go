@@ -52,3 +52,13 @@ func TestRunCLI_HelpOnStdout(t *testing.T) {
 		t.Errorf("stdout should mention 'sftui why', got %q", out.String())
 	}
 }
+
+func TestUsage_CompareTakesNoOrg(t *testing.T) {
+	u := usage()
+	if !strings.Contains(u, "compare takes no --org") {
+		t.Errorf("usage should say compare takes no --org:\n%s", u)
+	}
+	if strings.Contains(u, "common flags") {
+		t.Error("flags should be listed per command, not as 'common'")
+	}
+}

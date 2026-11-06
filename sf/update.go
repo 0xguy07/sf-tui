@@ -1,7 +1,6 @@
 package sf
 
 import (
-	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -92,17 +91,7 @@ func UpdateRecord(g WriteGate, orgAliasOrUser, sobject, id string, updates map[s
 		cmd := exec.Command("sf", args...)
 		out, err := cmd.Output()
 		if err != nil {
-			if ee, ok := err.(*exec.ExitError); ok && len(ee.Stderr) > 0 {
-				return ErrMsg{Err: fmt.Errorf("%s", string(ee.Stderr))}
-			}
-			// Some sf errors come back as JSON on stdout, not stderr.
-			var r struct {
-				Message string `json:"message"`
-			}
-			if jerr := json.Unmarshal(out, &r); jerr == nil && r.Message != "" {
-				return ErrMsg{Err: fmt.Errorf("%s", r.Message)}
-			}
-			return ErrMsg{Err: fmt.Errorf("sf data update record: %w", err)}
+			return ErrMsg{Err: sfCommandError("sf data update record", out, err)}
 		}
 		return RecordUpdatedMsg{ID: id, SObject: sobject, Updates: updates}
 	}
