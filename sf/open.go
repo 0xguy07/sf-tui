@@ -22,12 +22,12 @@ func OpenInOrg(orgAliasOrUser, path, what string) tea.Cmd {
 		if path != "" {
 			args = append(args, "--path", path)
 		}
-		cmd := exec.Command("sf", args...)
+		cmd := sfCommand("sf org open", args...)
 		if err := cmd.Run(); err != nil {
 			if ee, ok := err.(*exec.ExitError); ok && len(ee.Stderr) > 0 {
 				return ErrMsg{Err: fmt.Errorf("%s", string(ee.Stderr))}
 			}
-			return ErrMsg{Err: fmt.Errorf("sf org open: %w", err)}
+			return ErrMsg{Err: sfCommandError("sf org open", nil, err)}
 		}
 		return OpenedMsg{What: what}
 	}

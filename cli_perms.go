@@ -18,7 +18,8 @@ func runPerms(args []string, stdout, stderr io.Writer, d cliDeps) int {
 	fs := flag.NewFlagSet("perms", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.Usage = func() {}
-	var org, object, format string
+	var org, object, format, timeout string
+	fs.StringVar(&timeout, "timeout", "", "deadline per sf call")
 	fs.StringVar(&org, "org", "", "org alias or username")
 	fs.StringVar(&org, "o", "", "org alias or username (shorthand)")
 	fs.StringVar(&object, "object", "", "sobject for field-level permissions")
@@ -47,6 +48,9 @@ func runPerms(args []string, stdout, stderr io.Writer, d cliDeps) int {
 		return 2
 	}
 	errw := prefixWriter{stderr, "perms: "}
+	if code := applyTimeoutFlag(timeout, errw); code != 0 {
+		return code
+	}
 	org, code := resolveOrg(org, d, errw)
 	if code != 0 {
 		return code

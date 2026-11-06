@@ -3,7 +3,6 @@ package sf
 import (
 	"encoding/json"
 	"fmt"
-	"os/exec"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -175,7 +174,7 @@ func runSOQLRaw(orgAliasOrUser, soql string, tooling bool) ([]byte, error) {
 	if tooling {
 		args = append(args, "--use-tooling-api")
 	}
-	cmd := exec.Command("sf", args...)
+	cmd := sfCommand("sf data query", args...)
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, sfCommandError("sf data query", out, err)

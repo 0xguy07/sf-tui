@@ -19,8 +19,9 @@ func runCompare(args []string, stdout, stderr io.Writer, d cliDeps) int {
 	fs := flag.NewFlagSet("compare", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.Usage = func() {}
-	var object, format string
+	var object, format, timeout string
 	var fields, customOnly, exitCode, refresh bool
+	fs.StringVar(&timeout, "timeout", "", "deadline per sf call")
 	fs.StringVar(&object, "object", "", "field-level diff for one object")
 	fs.BoolVar(&fields, "fields", false, "field-level diff for every object on both sides")
 	fs.BoolVar(&customOnly, "custom-only", false, "with --fields: only custom objects")
@@ -64,6 +65,9 @@ func runCompare(args []string, stdout, stderr io.Writer, d cliDeps) int {
 	}
 
 	errw := prefixWriter{stderr, "compare: "}
+	if code := applyTimeoutFlag(timeout, errw); code != 0 {
+		return code
+	}
 	opts := sf.CompareOptions{Object: object, Fields: fields, CustomOnly: customOnly, Refresh: refresh, Workers: 4}
 	diff, err := d.compare(a, b, opts)
 	if err != nil {

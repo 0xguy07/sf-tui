@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -19,14 +18,14 @@ type orgCreds struct {
 }
 
 var orgDisplay = func(org string) (orgCreds, error) {
-	out, err := exec.Command("sf", "org", "display", "--target-org", org, "--json").Output()
+	out, err := sfCommand("sf org display", "org", "display", "--target-org", org, "--json").Output()
 	var r struct {
 		Result  orgCreds `json:"result"`
 		Message string   `json:"message"`
 	}
 	if jerr := json.Unmarshal(out, &r); jerr != nil {
 		if err != nil {
-			return orgCreds{}, fmt.Errorf("sf org display: %w", err)
+			return orgCreds{}, sfCommandError("sf org display", out, err)
 		}
 		return orgCreds{}, fmt.Errorf("parse org display: %w", jerr)
 	}

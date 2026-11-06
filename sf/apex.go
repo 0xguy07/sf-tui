@@ -51,7 +51,7 @@ func RunApex(g WriteGate, orgAliasOrUser, code string) tea.Cmd {
 		}
 		f.Close()
 
-		cmd := exec.Command("sf", "apex", "run",
+		cmd := sfCommand("sf apex run", "apex", "run",
 			"--target-org", orgAliasOrUser,
 			"--file", path,
 			"--json",
@@ -68,7 +68,7 @@ func RunApex(g WriteGate, orgAliasOrUser, code string) tea.Cmd {
 			if ee, ok := err.(*exec.ExitError); ok && len(ee.Stderr) > 0 {
 				return ErrMsg{Err: fmt.Errorf("%s", string(ee.Stderr))}
 			}
-			return ErrMsg{Err: fmt.Errorf("sf apex run: %w", err)}
+			return ErrMsg{Err: sfCommandError("sf apex run", out, err)}
 		}
 		var r apexRunResult
 		if err := json.Unmarshal(out, &r); err != nil {

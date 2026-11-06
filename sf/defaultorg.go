@@ -3,13 +3,12 @@ package sf
 import (
 	"encoding/json"
 	"fmt"
-	"os/exec"
 )
 
 // sfConfigGet runs `sf config get target-org --json`. A variable so tests
 // can substitute fixture output.
 var sfConfigGet = func() ([]byte, error) {
-	return exec.Command("sf", "config", "get", "target-org", "--json").Output()
+	return sfCommand("sf config get", "config", "get", "target-org", "--json").Output()
 }
 
 // DefaultTargetOrg returns the sf CLI's default target org, or "" when none
@@ -17,7 +16,7 @@ var sfConfigGet = func() ([]byte, error) {
 func DefaultTargetOrg() (string, error) {
 	out, err := sfConfigGet()
 	if err != nil && len(out) == 0 {
-		return "", fmt.Errorf("sf config get target-org: %w", err)
+		return "", sfCommandError("sf config get target-org", out, err)
 	}
 	return parseTargetOrg(out)
 }
