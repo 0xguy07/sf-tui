@@ -1,0 +1,31 @@
+{
+  "status": 0,
+  "result": [
+    {
+      "name": "DailyApiRequests",
+      "max": 100,
+      "remaining": 0
+    },
+    {
+      "name": "DailyBulkApiBatches",
+      "max": 10000,
+      "remaining": 750
+    },
+    {
+      "name": "DailyStreamingApiEvents",
+      "max": 1000000,
+      "remaining": 900000
+    },
+    {
+      "name": "PackageVersionCreates",
+      "max": 0,
+      "remaining": 0
+    },
+    {
+      "name": "DailyAsyncApexExecutions",
+      "max": 250000,
+      "remaining": 260000
+    }
+  ],
+  "warnings": []
+}
