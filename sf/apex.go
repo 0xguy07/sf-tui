@@ -51,7 +51,7 @@ func RunApex(g WriteGate, orgAliasOrUser, code string) tea.Cmd {
 		}
 		f.Close()
 
-		cmd := exec.Command("sf", "apex", "run",
+		cmd := sfCommand("sf apex run", "apex", "run",
 			"--target-org", orgAliasOrUser,
 			"--file", path,
 			"--json",

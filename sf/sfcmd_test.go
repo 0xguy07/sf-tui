@@ -103,3 +103,64 @@ func TestSFCommandError_TimeoutPassthrough(t *testing.T) {
 		t.Errorf("TimeoutError must pass through unchanged, got %v", got)
 	}
 }
+
+// sleepingSF hangs on every call except `sf sobject list`, which answers.
+const sleepingSF = `case "$1 $2" in
+  "sobject list") echo '{"status":0,"result":{"sobjects":[{"name":"Account","label":"Account","custom":false,"queryable":true,"keyPrefix":"001"}]}}' ;;
+  *) sleep 5 ;;
+esac`
+
+func wantTimeout(t *testing.T, err error) {
+	t.Helper()
+	var te *TimeoutError
+	if !errors.As(err, &te) {
+		t.Errorf("want *TimeoutError, got %v", err)
+	}
+}
+
+func TestRunQuery_Timeout(t *testing.T) {
+	fakeSF(t, sleepingSF)
+	withTimeout(t, 100*time.Millisecond)
+	msg := RunQuery("x", "SELECT Id FROM Account")()
+	em, ok := msg.(ErrMsg)
+	if !ok {
+		t.Fatalf("got %#v", msg)
+	}
+	wantTimeout(t, em.Err)
+}
+
+func TestFetchDescribe_Timeout(t *testing.T) {
+	fakeSF(t, sleepingSF)
+	withTimeout(t, 100*time.Millisecond)
+	_, _, _, err := fetchDescribe("x", "Account", true)
+	wantTimeout(t, err)
+}
+
+func TestLoadLimits_Timeout(t *testing.T) {
+	fakeSF(t, sleepingSF)
+	withTimeout(t, 100*time.Millisecond)
+	em, ok := LoadLimits("x")().(ErrMsg)
+	if !ok {
+		t.Fatal("want ErrMsg")
+	}
+	wantTimeout(t, em.Err)
+}
+
+func TestResolveUser_Timeout(t *testing.T) {
+	fakeSF(t, sleepingSF)
+	withTimeout(t, 100*time.Millisecond)
+	_, err := ResolveUser(DefaultSOQLRunner(), "x", "alex@acme.example")
+	wantTimeout(t, err)
+}
+
+func TestBuildSchemaDiff_DescribeTimeoutIsSectionError(t *testing.T) {
+	fakeSF(t, sleepingSF)
+	withTimeout(t, 100*time.Millisecond)
+	d, err := BuildSchemaDiff(DefaultSchemaLoader(), "a", "b", CompareOptions{Object: "Account", Refresh: true})
+	if err != nil {
+		t.Fatalf("sobject lists answer, so no hard error expected: %v", err)
+	}
+	if len(d.Errors) != 2 || !strings.Contains(d.Errors[0].Message, "timed out") {
+		t.Errorf("errors = %+v", d.Errors)
+	}
+}

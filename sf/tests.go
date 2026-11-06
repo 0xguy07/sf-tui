@@ -103,7 +103,7 @@ func RunTests(orgAliasOrUser string, classNames []string) tea.Cmd {
 		} else {
 			args = append(args, "--test-level", "RunLocalTests")
 		}
-		out, err := exec.Command("sf", args...).Output()
+		out, err := sfCommand("sf apex run test", args...).Output()
 		if err != nil {
 			// Test failures cause non-zero exit but still produce JSON. Try parsing.
 			var r apexTestRaw

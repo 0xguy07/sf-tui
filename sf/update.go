@@ -2,7 +2,6 @@ package sf
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -88,7 +87,7 @@ func UpdateRecord(g WriteGate, orgAliasOrUser, sobject, id string, updates map[s
 			"--values", FormatUpdateValues(updates),
 			"--json",
 		}
-		cmd := exec.Command("sf", args...)
+		cmd := sfCommand("sf data update record", args...)
 		out, err := cmd.Output()
 		if err != nil {
 			return ErrMsg{Err: sfCommandError("sf data update record", out, err)}

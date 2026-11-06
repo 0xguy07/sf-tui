@@ -43,9 +43,9 @@ func LoadDeployPreview(orgAliasOrUser, projectDir string) tea.Cmd {
 		if projectDir == "" {
 			return ErrMsg{Err: fmt.Errorf("no project directory")}
 		}
-		cmd := exec.Command("sf", "project", "deploy", "preview",
+		cmd := sfCommand("sf project deploy preview", "project", "deploy", "preview",
 			"--target-org", orgAliasOrUser, "--json")
-		cmd.Dir = projectDir
+		cmd.SetDir(projectDir)
 		out, err := cmd.Output()
 		if err != nil {
 			if ee, ok := err.(*exec.ExitError); ok {
@@ -93,8 +93,8 @@ func runDeploy(g WriteGate, orgAliasOrUser, projectDir string, dryRun bool) tea.
 		if dryRun {
 			args = append(args, "--dry-run")
 		}
-		cmd := exec.Command("sf", args...)
-		cmd.Dir = projectDir
+		cmd := sfCommand("sf project deploy start", args...)
+		cmd.SetDir(projectDir)
 		out, err := cmd.Output()
 		if err != nil {
 			stderr := ""

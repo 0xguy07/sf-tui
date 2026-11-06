@@ -3,7 +3,6 @@ package sf
 import (
 	"encoding/json"
 	"fmt"
-	"os/exec"
 	"sort"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -44,15 +43,12 @@ func LoadLimits(orgAliasOrUser string) tea.Cmd {
 		if orgAliasOrUser == "" {
 			return ErrMsg{Err: fmt.Errorf("no org selected")}
 		}
-		out, err := exec.Command("sf", "limits", "api", "display",
+		out, err := sfCommand("sf limits api display", "limits", "api", "display",
 			"--target-org", orgAliasOrUser,
 			"--json",
 		).Output()
 		if err != nil {
-			if ee, ok := err.(*exec.ExitError); ok && len(ee.Stderr) > 0 {
-				return ErrMsg{Err: fmt.Errorf("%s", string(ee.Stderr))}
-			}
-			return ErrMsg{Err: fmt.Errorf("sf limits: %w", err)}
+			return ErrMsg{Err: sfCommandError("sf limits api display", out, err)}
 		}
 		var r limitsResult
 		if err := json.Unmarshal(out, &r); err != nil {

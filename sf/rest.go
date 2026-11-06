@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -19,7 +18,7 @@ type orgCreds struct {
 }
 
 var orgDisplay = func(org string) (orgCreds, error) {
-	out, err := exec.Command("sf", "org", "display", "--target-org", org, "--json").Output()
+	out, err := sfCommand("sf org display", "org", "display", "--target-org", org, "--json").Output()
 	var r struct {
 		Result  orgCreds `json:"result"`
 		Message string   `json:"message"`

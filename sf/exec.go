@@ -3,7 +3,6 @@ package sf
 import (
 	"encoding/json"
 	"fmt"
-	"os/exec"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -27,7 +26,7 @@ func (e ErrMsg) Error() string { return e.Err.Error() }
 
 func LoadOrgs() tea.Cmd {
 	return func() tea.Msg {
-		out, err := exec.Command("sf", "org", "list", "--json").Output()
+		out, err := sfCommand("sf org list", "org", "list", "--json").Output()
 		if err != nil {
 			return ErrMsg{Err: fmt.Errorf("sf org list: %w", err)}
 		}
@@ -74,7 +73,7 @@ func runQueryArgs(orgAliasOrUser, soql string, tooling bool) tea.Cmd {
 		if tooling {
 			args = append(args, "--use-tooling-api")
 		}
-		cmd := exec.Command("sf", args...)
+		cmd := sfCommand("sf data query", args...)
 		out, err := cmd.Output()
 		if err != nil {
 			return ErrMsg{Err: sfCommandError("sf data query", out, err)}

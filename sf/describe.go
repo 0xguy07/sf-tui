@@ -3,7 +3,6 @@ package sf
 import (
 	"encoding/json"
 	"fmt"
-	"os/exec"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -97,7 +96,7 @@ func fetchSObjects(org string, force bool) ([]SObjectSummary, bool, time.Time, e
 			return ss, true, at, nil
 		}
 	}
-	out, err := exec.Command("sf", "sobject", "list",
+	out, err := sfCommand("sf sobject list", "sobject", "list",
 		"--target-org", org,
 		"--json",
 	).Output()
@@ -158,7 +157,7 @@ func fetchDescribe(org, sobject string, force bool) (Describe, bool, time.Time, 
 			return d, true, at, nil
 		}
 	}
-	out, err := exec.Command("sf", "sobject", "describe",
+	out, err := sfCommand("sf sobject describe "+sobject, "sobject", "describe",
 		"--target-org", org,
 		"--sobject", sobject,
 		"--json",
