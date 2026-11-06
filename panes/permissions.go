@@ -193,10 +193,7 @@ func flag(on bool) string {
 }
 
 func truncate(s string, max int) string {
-	if len(s) <= max {
-		return s
-	}
-	return s[:max-1] + "…"
+	return cutRunes(s, max)
 }
 
 func (p Permissions) UpdateList(msg tea.Msg) (Permissions, tea.Cmd) {
