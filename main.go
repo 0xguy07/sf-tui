@@ -58,20 +58,26 @@ type model struct {
 	ac      panes.Autocomplete
 	record  panes.Record
 
-	saveInput     textinput.Model
-	saving        bool
-	exportInput   textinput.Model
-	exporting     bool
-	flsInput      textinput.Model
-	flsPrompt     bool
-	flsForUser    *sf.UserBrief
-	deployConfirm bool
-	pickerOn      bool
-	paletteOn     bool
-	helpOn        bool
+	saveInput   textinput.Model
+	saving      bool
+	exportInput textinput.Model
+	exporting   bool
+	flsInput    textinput.Model
+	flsPrompt   bool
+	flsForUser  *sf.UserBrief
+	pickerOn    bool
+	paletteOn   bool
+	helpOn      bool
+
+	pending      *pendingWrite
+	confirmInput textinput.Model
+	unlockPrompt bool
+	unlockInput  textinput.Model
 
 	store *sf.Store
 	cache *sf.Cache
+	gate  sf.WriteGate // every org write is checked here
+	gates *sf.Gate     // classification, session lock state, badges
 	tail  *sf.LogTail
 
 	spinner spinner.Model
@@ -127,6 +133,21 @@ func initialModel() model {
 	fi.CharLimit = 80
 	fi.Width = 40
 
+	ci := textinput.New()
+	ci.CharLimit = 120
+	ci.Width = 40
+
+	ui := textinput.New()
+	ui.CharLimit = 120
+	ui.Width = 40
+
+	cfg, cfgErr := sf.LoadGateConfig()
+	gates := sf.NewGate(cfg, cfgErr)
+	startErr := ""
+	if cfgErr != nil {
+		startErr = "config: " + cfgErr.Error() + " — all orgs locked until it's fixed"
+	}
+
 	store, _ := sf.LoadStore()
 	if store == nil {
 		store = &sf.Store{}
@@ -158,6 +179,12 @@ func initialModel() model {
 		focus:       focusOrgs,
 		status:      "loading orgs…",
 		loading:     true,
+
+		confirmInput: ci,
+		unlockInput:  ui,
+		gate:         gates,
+		gates:        gates,
+		err:          startErr,
 	}
 }
 
@@ -356,6 +383,50 @@ func (m *model) acceptCompletion() {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
+	// Write confirmation (y/n or typed alias) captures keys, even over the record editor.
+	if m.pending != nil {
+		if km, ok := msg.(tea.KeyMsg); ok {
+			return m.updatePendingWrite(km)
+		}
+		if m.pending.typed {
+			var cmd tea.Cmd
+			m.confirmInput, cmd = m.confirmInput.Update(msg)
+			return m, cmd
+		}
+		return m, nil
+	}
+
+	// Session-unlock prompt: type the org name to unlock writes until quit.
+	if m.unlockPrompt {
+		if km, ok := msg.(tea.KeyMsg); ok {
+			switch km.String() {
+			case "esc":
+				m.unlockPrompt = false
+				m.unlockInput.Blur()
+				m.unlockInput.SetValue("")
+				m.status = "unlock cancelled"
+				return m, nil
+			case "enter":
+				org := m.selectedOrg()
+				typed := strings.TrimSpace(m.unlockInput.Value())
+				m.unlockPrompt = false
+				m.unlockInput.Blur()
+				m.unlockInput.SetValue("")
+				if typed != org {
+					m.err = "name didn't match " + org + " — still locked"
+					return m, nil
+				}
+				m.gates.SessionUnlock(org)
+				m.err = ""
+				m.status = "writes unlocked for " + org + " until you quit"
+				return m, nil
+			}
+		}
+		var cmd tea.Cmd
+		m.unlockInput, cmd = m.unlockInput.Update(msg)
+		return m, cmd
+	}
+
 	// Record editor modal — captures all keystrokes while open.
 	if m.record.Visible {
 		if km, ok := msg.(tea.KeyMsg); ok {
@@ -389,16 +460,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 			case "ctrl+s":
-				if !m.record.Dirty() {
-					m.status = "no changes to save"
-					return m, nil
-				}
-				m.loading = true
-				m.status = "saving record…"
-				return m, tea.Batch(
-					sf.UpdateRecord(m.selectedOrg(), m.record.SObject, m.record.RecordID, m.record.Updates()),
-					m.spinner.Tick,
-				)
+				return m.saveRecord()
 			}
 		}
 		var cmd tea.Cmd
@@ -494,30 +556,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
-	// Deploy confirmation modal — y/n only.
-	if m.deployConfirm {
-		if km, ok := msg.(tea.KeyMsg); ok {
-			switch km.String() {
-			case "y", "Y":
-				m.deployConfirm = false
-				org := m.selectedOrg()
-				if org == "" || !m.meta.Loaded() {
-					m.err = "load a deploy preview first"
-					return m, nil
-				}
-				m.loading = true
-				m.status = "deploying to " + org + "…"
-				m.meta.SetStatus("deploying to " + org + "… (real deploy, not dry-run)")
-				return m, tea.Batch(sf.RunDeploy(org, m.meta.ProjectDir()), m.spinner.Tick)
-			case "n", "N", "esc":
-				m.deployConfirm = false
-				m.status = "deploy cancelled"
-				return m, nil
-			}
-		}
-		return m, nil
-	}
-
 	// Help overlay.
 	if m.helpOn {
 		if km, ok := msg.(tea.KeyMsg); ok {
@@ -585,6 +623,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case sf.OrgsLoadedMsg:
 		m.orgs.SetOrgs(msg.Orgs)
+		m.gates.SetOrgs(msg.Orgs)
+		if cmd := m.classifySelected(); cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 		m.loading = false
 		m.status = fmt.Sprintf("%d orgs loaded — alt+1/2/3 switch tabs, tab switches panes, q quits", len(msg.Orgs))
 
@@ -778,6 +820,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.why.SetAutomation(msg.Part)
 		m.finishWhy()
+
+	case sf.OrgClassifiedMsg:
+		m.gates.SetClass(msg.Username, msg.Class)
+		if msg.Err != nil {
+			m.status = "couldn't classify " + msg.Username + " — treating it as PROD (" + firstLine(msg.Err.Error()) + ")"
+		}
 
 	case sf.OpenedMsg:
 		m.loading = false
@@ -1117,6 +1165,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.metaLoadedFor = ""
 				m.limits.Clear()
 				m.ac.Hide()
+				if cmd := m.classifySelected(); cmd != nil {
+					cmds = append(cmds, cmd)
+				}
 			}
 			if m.loading {
 				var sc tea.Cmd
@@ -1268,6 +1319,8 @@ func (m model) paletteCommands() []panes.Command {
 		{ID: "action.copy", Label: "Copy results as TSV", Hint: "ctrl+y", Help: "Copy query results to the clipboard"},
 		{ID: "action.csv", Label: "Export results as CSV", Hint: "ctrl+x", Help: "Write query results to ~/sf-tui-queries/*.csv"},
 		{ID: "action.savequery", Label: "Save current query", Hint: "ctrl+s", Help: "Name and save the current SOQL"},
+		{ID: "action.unlock", Label: "Unlock writes for this session", Hint: "", Help: "Allow record saves, Apex, and deploys on the selected org until you quit (type its name to confirm)"},
+		{ID: "action.lock", Label: "Lock writes", Hint: "", Help: "Block record saves, Apex, and deploys on the selected org for the rest of this session"},
 		{ID: "action.help", Label: "Show keybindings", Hint: "?", Help: "Open the help overlay listing every keybinding"},
 	}
 }
@@ -1405,6 +1458,24 @@ func (m model) dispatchCommand(id string) (tea.Model, tea.Cmd) {
 	case "action.help":
 		m.helpOn = true
 		return m, nil
+	case "action.unlock":
+		if m.selectedOrg() == "" {
+			m.err = "select an org first"
+			return m, nil
+		}
+		m.unlockPrompt = true
+		m.unlockInput.SetValue("")
+		m.unlockInput.Placeholder = m.selectedOrg()
+		return m, m.unlockInput.Focus()
+	case "action.lock":
+		org := m.selectedOrg()
+		if org == "" {
+			m.err = "select an org first"
+			return m, nil
+		}
+		m.gates.SessionLock(org)
+		m.status = "writes locked for " + org + " for this session"
+		return m, nil
 	case "action.savequery":
 		if strings.TrimSpace(m.query.Value()) == "" {
 			m.err = "query is empty"
@@ -1495,9 +1566,13 @@ func (m model) confirmDeploy() (tea.Model, tea.Cmd) {
 		m.err = "load a deploy preview first (ctrl+r)"
 		return m, nil
 	}
-	m.deployConfirm = true
-	m.err = ""
-	return m, nil
+	dir := m.meta.ProjectDir()
+	return m.gateWrite(sf.ActionDeploy, org, func(m *model) tea.Cmd {
+		m.loading = true
+		m.status = "deploying to " + org + "…"
+		m.meta.SetStatus("deploying to " + org + "… (real deploy, not dry-run)")
+		return tea.Batch(sf.RunDeploy(m.gate, org, dir), m.spinner.Tick)
+	})
 }
 
 func (m model) openFieldDiff() (tea.Model, tea.Cmd) {
@@ -1561,6 +1636,184 @@ func (m model) runTests() (tea.Model, tea.Cmd) {
 	return m, tea.Batch(sf.RunTests(org, names), m.spinner.Tick)
 }
 
+// pendingWrite is a gated write waiting on the user's y/n or typed-name confirmation.
+type pendingWrite struct {
+	action sf.WriteAction
+	org    string
+	typed  bool
+	run    func(m *model) tea.Cmd
+}
+
+// gateWrite is the only way a handler starts an org write: it checks the gate,
+// then runs immediately or asks for the confirmation the gate requires.
+func (m model) gateWrite(action sf.WriteAction, org string, run func(m *model) tea.Cmd) (tea.Model, tea.Cmd) {
+	if err := m.gate.Check(org, action); err != nil {
+		m.err = err.Error()
+		return m, nil
+	}
+	switch m.gate.Confirmation(org, action) {
+	case sf.ConfirmNone:
+		cmd := run(&m)
+		return m, cmd
+	case sf.ConfirmTyped:
+		m.pending = &pendingWrite{action: action, org: org, typed: true, run: run}
+		m.confirmInput.SetValue("")
+		return m, m.confirmInput.Focus()
+	default:
+		m.pending = &pendingWrite{action: action, org: org, run: run}
+		return m, nil
+	}
+}
+
+func (m model) updatePendingWrite(km tea.KeyMsg) (tea.Model, tea.Cmd) {
+	p := m.pending
+	cancel := func() (tea.Model, tea.Cmd) {
+		m.pending = nil
+		m.confirmInput.Blur()
+		m.status = string(p.action) + " cancelled"
+		return m, nil
+	}
+	proceed := func() (tea.Model, tea.Cmd) {
+		m.pending = nil
+		m.confirmInput.Blur()
+		if err := m.gate.Check(p.org, p.action); err != nil {
+			m.err = err.Error()
+			return m, nil
+		}
+		m.err = ""
+		cmd := p.run(&m)
+		return m, cmd
+	}
+	if p.typed {
+		switch km.String() {
+		case "esc":
+			return cancel()
+		case "enter":
+			if strings.TrimSpace(m.confirmInput.Value()) != p.org {
+				m.err = "name didn't match " + p.org + " — " + string(p.action) + " cancelled"
+				m.pending = nil
+				m.confirmInput.Blur()
+				return m, nil
+			}
+			return proceed()
+		}
+		var cmd tea.Cmd
+		m.confirmInput, cmd = m.confirmInput.Update(km)
+		return m, cmd
+	}
+	switch km.String() {
+	case "y", "Y":
+		return proceed()
+	case "n", "N", "esc":
+		return cancel()
+	}
+	return m, nil
+}
+
+var confirmStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
+
+func (m model) pendingPrompt() string {
+	p := m.pending
+	label := p.org
+	if m.gates.State(p.org).Protected {
+		label += " (" + orgStateText(m.gates.State(p.org)) + ")"
+	}
+	switch {
+	case p.typed:
+		return confirmStyle.Render("REAL DEPLOY to protected org "+label+" — type "+p.org+" to confirm: ") +
+			m.confirmInput.View() + helpStyle.Render("  (enter to deploy, esc to cancel)")
+	case p.action == sf.ActionDeploy:
+		return confirmStyle.Render("REAL DEPLOY to " + label + " — proceed? y/n")
+	case p.action == sf.ActionRecordSave:
+		return confirmStyle.Render("Save record to " + label + "? y/n")
+	default:
+		return confirmStyle.Render("Execute anonymous Apex on " + label + "? y/n")
+	}
+}
+
+func (m model) errLine() string {
+	if strings.HasPrefix(m.err, "Blocked:") {
+		return errStyle.Render(m.err)
+	}
+	return errStyle.Render("error: " + m.err)
+}
+
+func (m model) saveRecord() (tea.Model, tea.Cmd) {
+	if !m.record.Dirty() {
+		m.status = "no changes to save"
+		return m, nil
+	}
+	org := m.selectedOrg()
+	sobject, id, updates := m.record.SObject, m.record.RecordID, m.record.Updates()
+	return m.gateWrite(sf.ActionRecordSave, org, func(m *model) tea.Cmd {
+		m.loading = true
+		m.status = "saving record…"
+		return tea.Batch(sf.UpdateRecord(m.gate, org, sobject, id, updates), m.spinner.Tick)
+	})
+}
+
+func (m *model) classifySelected() tea.Cmd {
+	o, need := m.gates.NeedsClassify(m.selectedOrg())
+	if !need {
+		return nil
+	}
+	return sf.ClassifyOrg(o)
+}
+
+func firstLine(s string) string {
+	s = strings.TrimSpace(s)
+	if i := strings.IndexByte(s, '\n'); i >= 0 {
+		return s[:i]
+	}
+	return s
+}
+
+func orgStateText(st sf.OrgState) string {
+	var class string
+	switch st.Class {
+	case sf.ClassUnknown:
+		return "CLASSIFYING…"
+	case sf.ClassProd:
+		class = "PROD"
+	case sf.ClassSandbox:
+		class = "SANDBOX"
+	case sf.ClassScratch:
+		class = "SCRATCH"
+	case sf.ClassDev:
+		class = "DEV"
+	}
+	switch {
+	case st.Locked && (st.Class == sf.ClassProd || st.Protected):
+		return class + " · LOCKED"
+	case st.Protected:
+		return class + " · UNLOCKED"
+	case st.Locked:
+		return class + " · LOCKED"
+	}
+	return class
+}
+
+var (
+	badgeBase    = lipgloss.NewStyle().Padding(0, 1).Bold(true)
+	badgeProd    = badgeBase.Background(lipgloss.Color("196")).Foreground(lipgloss.Color("15"))
+	badgeSandbox = badgeBase.Background(lipgloss.Color("220")).Foreground(lipgloss.Color("16"))
+	badgeDim     = lipgloss.NewStyle().Padding(0, 1).Background(lipgloss.Color("238")).Foreground(lipgloss.Color("250"))
+)
+
+func renderOrgStateBadge(st sf.OrgState) string {
+	text := orgStateText(st)
+	switch st.Class {
+	case sf.ClassProd:
+		if st.Locked {
+			return badgeProd.Render(text)
+		}
+		return badgeProd.Reverse(true).Render(text)
+	case sf.ClassSandbox:
+		return badgeSandbox.Render(text)
+	}
+	return badgeDim.Render(text)
+}
+
 func (m model) runApex() (tea.Model, tea.Cmd) {
 	org := m.selectedOrg()
 	if org == "" {
@@ -1572,11 +1825,14 @@ func (m model) runApex() (tea.Model, tea.Cmd) {
 		m.err = "apex editor is empty"
 		return m, nil
 	}
-	m.loading = true
+	src := m.apex.Value()
 	m.err = ""
-	m.apex.Running = true
-	m.status = "executing apex…"
-	return m, tea.Batch(sf.RunApex(org, m.apex.Value()), m.spinner.Tick)
+	return m.gateWrite(sf.ActionApex, org, func(m *model) tea.Cmd {
+		m.loading = true
+		m.apex.Running = true
+		m.status = "executing apex…"
+		return tea.Batch(sf.RunApex(m.gate, org, src), m.spinner.Tick)
+	})
 }
 
 func (m model) runQuery() (tea.Model, tea.Cmd) {
@@ -1748,12 +2004,12 @@ func (m model) View() string {
 		footer = statusStyle.Render("export as: ") + m.exportInput.View() + helpStyle.Render("  (enter to write, esc to cancel)")
 	case m.flsPrompt:
 		footer = statusStyle.Render("field perms on: ") + m.flsInput.View() + helpStyle.Render("  (enter to load, esc to cancel)")
-	case m.deployConfirm:
-		warn := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true).
-			Render("REAL DEPLOY to " + m.selectedOrg() + " — proceed? y/n")
-		footer = warn
+	case m.pending != nil:
+		footer = m.pendingPrompt()
+	case m.unlockPrompt:
+		footer = statusStyle.Render("unlock writes for this session — type "+m.selectedOrg()+": ") + m.unlockInput.View() + helpStyle.Render("  (enter to unlock, esc to cancel)")
 	case m.err != "":
-		footer = errStyle.Render("error: " + m.err)
+		footer = m.errLine()
 	case m.loading:
 		footer = statusStyle.Render(m.spinner.View() + " " + m.status)
 	default:
@@ -1781,6 +2037,12 @@ func (m model) View() string {
 
 	if m.record.Visible {
 		help := helpStyle.Render("tab: switch focus · enter: edit value · ctrl+s: save · esc: cancel · ctrl+w: discard")
+		switch {
+		case m.pending != nil:
+			help = m.pendingPrompt()
+		case m.err != "":
+			help = m.errLine()
+		}
 		return overlayStyle.Render(m.record.View()) + "\n" + help
 	}
 
@@ -1804,7 +2066,7 @@ func renderHelpModal(width, height int) string {
 	fmt.Fprintln(&b, sectionStyle.Render("Global"))
 	fmt.Fprintln(&b, row("alt+1 … alt+0", "switch tab (Query/Objects/Logs/Apex/Limits/Perms/Tests/Meta/Compare/Why)"))
 	fmt.Fprintln(&b, row("tab / shift+tab", "cycle pane focus within current tab"))
-	fmt.Fprintln(&b, row("ctrl+k", "command palette"))
+	fmt.Fprintln(&b, row("ctrl+k", "command palette (incl. Unlock / Lock writes for the selected org)"))
 	fmt.Fprintln(&b, row("ctrl+o", "open in org (record / sobject / Setup home)"))
 	fmt.Fprintln(&b, row("?", "this help"))
 	fmt.Fprintln(&b, row("ctrl+c / q", "quit"))
@@ -1900,7 +2162,7 @@ func (m model) renderHeader() string {
 		badges = append(badges, toolingBadge)
 	}
 	if org := m.selectedOrg(); org != "" {
-		badges = append(badges, orgBadge.Render("⏵ "+org))
+		badges = append(badges, renderOrgStateBadge(m.gates.State(org)), orgBadge.Render("⏵ "+org))
 	} else {
 		badges = append(badges, orgBadgeNone.Render("⏵ no org"))
 	}

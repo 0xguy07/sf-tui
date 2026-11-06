@@ -66,22 +66,27 @@ func LoadDeployPreview(orgAliasOrUser, projectDir string) tea.Cmd {
 // RunDeployDryRun shells out to `sf project deploy start --dry-run` so we can
 // validate without committing changes.
 func RunDeployDryRun(orgAliasOrUser, projectDir string) tea.Cmd {
-	return runDeploy(orgAliasOrUser, projectDir, true)
+	return runDeploy(nil, orgAliasOrUser, projectDir, true)
 }
 
 // RunDeploy shells out to `sf project deploy start` — a real, non-dry-run
-// deploy. The Meta tab guards this behind a y/n confirmation.
-func RunDeploy(orgAliasOrUser, projectDir string) tea.Cmd {
-	return runDeploy(orgAliasOrUser, projectDir, false)
+// deploy, allowed only when the write gate passes.
+func RunDeploy(g WriteGate, orgAliasOrUser, projectDir string) tea.Cmd {
+	return runDeploy(g, orgAliasOrUser, projectDir, false)
 }
 
-func runDeploy(orgAliasOrUser, projectDir string, dryRun bool) tea.Cmd {
+func runDeploy(g WriteGate, orgAliasOrUser, projectDir string, dryRun bool) tea.Cmd {
 	return func() tea.Msg {
 		if orgAliasOrUser == "" {
 			return ErrMsg{Err: fmt.Errorf("no org selected")}
 		}
 		if projectDir == "" {
 			return ErrMsg{Err: fmt.Errorf("no project directory")}
+		}
+		if !dryRun {
+			if err := checkGate(g, orgAliasOrUser, ActionDeploy); err != nil {
+				return ErrMsg{Err: err}
+			}
 		}
 		args := []string{"project", "deploy", "start",
 			"--target-org", orgAliasOrUser, "--json"}

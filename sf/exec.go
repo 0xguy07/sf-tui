@@ -31,15 +31,26 @@ func LoadOrgs() tea.Cmd {
 		if err != nil {
 			return ErrMsg{Err: fmt.Errorf("sf org list: %w", err)}
 		}
-		var r OrgListResult
-		if err := json.Unmarshal(out, &r); err != nil {
-			return ErrMsg{Err: fmt.Errorf("parse org list: %w", err)}
+		all, err := parseOrgList(out)
+		if err != nil {
+			return ErrMsg{Err: err}
 		}
-		all := append([]Org{}, r.Result.NonScratchOrgs...)
-		all = append(all, r.Result.ScratchOrgs...)
-		all = append(all, r.Result.Other...)
 		return OrgsLoadedMsg{Orgs: all}
 	}
+}
+
+func parseOrgList(out []byte) ([]Org, error) {
+	var r OrgListResult
+	if err := json.Unmarshal(out, &r); err != nil {
+		return nil, fmt.Errorf("parse org list: %w", err)
+	}
+	all := append([]Org{}, r.Result.NonScratchOrgs...)
+	for _, o := range r.Result.ScratchOrgs {
+		o.IsScratch = true
+		all = append(all, o)
+	}
+	all = append(all, r.Result.Other...)
+	return all, nil
 }
 
 func RunQuery(orgAliasOrUser, soql string) tea.Cmd {

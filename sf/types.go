@@ -7,7 +7,13 @@ type Org struct {
 	IsDefaultOrg bool   `json:"isDefaultUsername"`
 	OrgID        string `json:"orgId"`
 	Connected    string `json:"connectedStatus"`
+	IsScratch    bool   `json:"isScratch"`
+	DevHub       string `json:"devHubUsername"`
 }
+
+// Scratch reports the CLI's scratch marking: the scratchOrgs bucket (set in
+// LoadOrgs), isScratch, or a devHubUsername.
+func (o Org) Scratch() bool { return o.IsScratch || o.DevHub != "" }
 
 type OrgListResult struct {
 	Status int `json:"status"`

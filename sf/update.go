@@ -67,10 +67,13 @@ func sortStrings(s []string) {
 }
 
 // UpdateRecord runs `sf data update record` with the given field changes.
-func UpdateRecord(orgAliasOrUser, sobject, id string, updates map[string]string) tea.Cmd {
+func UpdateRecord(g WriteGate, orgAliasOrUser, sobject, id string, updates map[string]string) tea.Cmd {
 	return func() tea.Msg {
 		if orgAliasOrUser == "" {
 			return ErrMsg{Err: fmt.Errorf("no org selected")}
+		}
+		if err := checkGate(g, orgAliasOrUser, ActionRecordSave); err != nil {
+			return ErrMsg{Err: err}
 		}
 		if sobject == "" || id == "" {
 			return ErrMsg{Err: fmt.Errorf("missing sobject or record id")}

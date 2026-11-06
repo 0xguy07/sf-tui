@@ -31,10 +31,13 @@ type apexRunResult struct {
 	Message string `json:"message,omitempty"`
 }
 
-func RunApex(orgAliasOrUser, code string) tea.Cmd {
+func RunApex(g WriteGate, orgAliasOrUser, code string) tea.Cmd {
 	return func() tea.Msg {
 		if orgAliasOrUser == "" {
 			return ErrMsg{Err: fmt.Errorf("no org selected")}
+		}
+		if err := checkGate(g, orgAliasOrUser, ActionApex); err != nil {
+			return ErrMsg{Err: err}
 		}
 		f, err := os.CreateTemp("", "sf-tui-apex-*.apex")
 		if err != nil {

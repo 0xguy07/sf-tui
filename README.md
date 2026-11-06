@@ -53,11 +53,11 @@ sftui
 | `alt+1`  | **Query**        | Write SOQL, run against the selected org, scroll results |
 | `alt+2`  | **Objects**      | Browse every SObject in the org and inspect fields/types/picklists. `ctrl+r` refreshes the schema cache |
 | `alt+3`  | **Logs**         | Live-tail Apex debug logs |
-| `alt+4`  | **Apex**         | Anonymous Apex scratchpad — write code, run with `ctrl+r`, see the debug log inline |
+| `alt+4`  | **Apex**         | Anonymous Apex scratchpad — write code, run with `ctrl+r`, see the debug log inline. Goes through the [write gate](#safety) |
 | `alt+5`  | **Limits**       | API limits with horizontal usage bars, sorted by % used. `ctrl+r` refreshes |
 | `alt+6`  | **Permissions**  | Pick a user, see effective object permissions and which perm sets / profile grant them |
 | `alt+7`  | **Tests**        | Apex test runner — multi-select classes with `space`, run with `ctrl+r`, see pass/fail + coverage with uncovered line numbers |
-| `alt+8`  | **Meta**         | Deploy preview for the current project — see what would deploy/delete/conflict, dry-run with `ctrl+r`, real deploy with `ctrl+d` (asks first) |
+| `alt+8`  | **Meta**         | Deploy preview for the current project — see what would deploy/delete/conflict, dry-run with `ctrl+r`, real deploy with `ctrl+d` (asks first; goes through the [write gate](#safety)) |
 | `alt+9`  | **Compare**      | Schema diff between two orgs — pick org A, `ctrl+r`, pick org B, `ctrl+r` again. `enter` on a row → field-level diff. `c` to clear |
 | `alt+0`  | **Why**          | "Why did this record change?" Enter a record Id and press `ctrl+r` to see its tracked field changes grouped into saves, each with who made it, plus every automation on the object in order of execution and which of them could have written each field. Read-only |
 
@@ -79,7 +79,7 @@ sftui
 | `?`                 | Help overlay — every keybinding by section |
 | `/`                 | Filter current list |
 | `ctrl+r`            | Run query (Query) / execute Apex (Apex) / refresh schema cache (Objects) / run tests (Tests) / dry-run (Meta) / load side (Compare) / trace a record, again to refresh (Why) |
-| `ctrl+d`            | Real, non-dry-run deploy (Meta tab) — confirms with `y/n` |
+| `ctrl+d`            | Real, non-dry-run deploy (Meta tab). Asks `y/n`, or for the typed org name on a protected org. See [Safety](#safety) |
 | `ctrl+space`        | Force-trigger autocomplete |
 | `tab` / `enter`     | Accept current autocomplete suggestion (when popup is open) |
 | `esc`               | Close autocomplete / overlay |
@@ -99,9 +99,9 @@ sftui
 - **SOQL autocomplete** — type `SELECT Id FROM Acc…` and get live suggestions. After `FROM Account`, field names autocomplete in `SELECT`/`WHERE`/`ORDER BY`. Dotted relationship walks (`Account.Owner.Email`) work too. Built from a describe cache keyed by org that **persists to disk**, so launches and lookups stay instant after the first fetch — `ctrl+r` on the Objects tab refreshes when schema changes.
 - **Object Explorer** — fuzzy-search every SObject in your org, see fields, types, picklist values, required flags, and relationships without leaving the keyboard.
 - **SOQL that remembers** — per-org query history and named saved queries, fuzzy-picked with `ctrl+p`. Export any query to a `.soql` file with `ctrl+e`.
-- **Inline record editor** — press `enter` on any query result to edit its fields and `ctrl+s` to write back to the org, without leaving the table.
+- **Inline record editor**: press `enter` on any query result to edit its fields and `ctrl+s` to write back to the org, without leaving the table. Saves go through the [write gate](#safety): blocked on locked orgs, and a `y/n` naming the org on protected ones.
 - **Live log tail** — watch Apex logs stream in real time.
-- **Apex scratchpad** — write anonymous Apex in a real editor pane, hit `ctrl+r`, get the compile/runtime status and full debug log in the output pane. No more `sf apex run --file /tmp/foo.apex` round-trips.
+- **Apex scratchpad** — write anonymous Apex in a real editor pane, hit `ctrl+r`, get the compile/runtime status and full debug log in the output pane. No more `sf apex run --file /tmp/foo.apex` round-trips. Execution goes through the [write gate](#safety), like record saves.
 - **Limits dashboard** — every API limit in the org as a colored usage bar (green / yellow / red), sorted by % used so the things to worry about float to the top.
 - **Command palette (`ctrl+k`)** — fuzzy-pick any action: switch tab, run, open in org, save query, copy as TSV, …
 - **Open in org (`ctrl+o`)** — one keystroke jumps the browser to the selected record (Query tab) or the sobject in Setup → Object Manager (Objects tab).
@@ -110,7 +110,7 @@ sftui
 - **Apex test runner** — list test classes, multi-select with `space`, run with `ctrl+r`. See pass/fail and per-class line coverage with red/green bars. Coverage below 75% turns red so the bad apple is impossible to miss.
 - **Tooling API support (`ctrl+t`)** — flip the Query tab into Tooling API mode to query `ApexClass`, `FlowDefinition`, `CustomField`, and friends. Header shows a yellow `TOOLING` badge so you don't run a regular query against the wrong API.
 - **Org Compare with field-level diff** — sobject-level diff first, then `enter` on any row drills into a field-by-field comparison: only-in-A, only-in-B, and changed (with the specific attribute that moved — type, length, required, formula, picklist values).
-- **Real deploy from the Meta tab (`ctrl+d`)** — once you've reviewed the preview, `ctrl+d` runs a real deploy. A red `REAL DEPLOY to <org> — y/n` confirmation makes sure you can't fire it by accident.
+- **Real deploy from the Meta tab (`ctrl+d`)** — once you've reviewed the preview, `ctrl+d` runs a real deploy. A red `REAL DEPLOY to <org> — y/n` confirmation makes sure you can't fire it by accident. On a protected org you type the org's name instead, and on a locked org the deploy is blocked (see [Safety](#safety)).
 - **Why did this record change? (`alt+0`)**: a timeline of a record's field-history changes, grouped into saves and badged `AUTO` / `INTEG` / `GUEST` by who made them. Beside it, every flow, trigger, validation rule, assignment rule, workflow rule, and process on the object, in Salesforce order of execution. Each changed field lists the automation that could have written it. `w` on a query result jumps straight there.
 - **Multi-org native** — switch orgs with one keypress; each tab scopes to the selected org.
 - **Single binary** — ~6 MB, no Electron, no browser, no JVM. Works over SSH.
@@ -134,11 +134,61 @@ sftui
 - [x] Org compare (sobject-level schema diff between two orgs)
 - [x] Field-level diff per sobject in Org Compare
 - [x] Real (non-dry-run) deploy from the Meta tab
+- [x] Production safety gate: prod orgs locked by default; session or config unlock
 - [x] Why tab: record field-history timeline + automation in order of execution, with possible writers per field
+
+## Safety
+
+sf-tui won't write to a production org unless you deliberately unlock it. Reads are never gated.
+
+**What counts as a write:** saving a record in the editor, executing anonymous Apex, and a real (non-dry-run) deploy. Every one of them goes through a single write gate. Queries (regular and Tooling), dry-run deploys, test runs, log tail, and the Why tab are not gated.
+
+**Classification.** Each org is classified once per session, when you select it:
+
+| Class | How it's detected |
+|-------|-------------------|
+| `SCRATCH` | `sf org list --json` lists it as a scratch org |
+| `SANDBOX` | `Organization.IsSandbox = true` |
+| `DEV` | `Organization.OrganizationType = 'Developer Edition'` |
+| `PROD` | everything else, including when classification fails (fail closed) |
+
+**Badges.** The header shows the selected org's state next to its name:
+
+| Badge | Meaning |
+|-------|---------|
+| `PROD · LOCKED` (red) | Production; writes blocked (the default) |
+| `PROD · UNLOCKED` (red, reversed) | Production, unlocked by you |
+| `SANDBOX` (yellow) | Writes allowed |
+| `SCRATCH` / `DEV` (dim) | Writes allowed |
+| `<CLASS> · LOCKED` | A non-prod org locked by config or by **Lock writes** |
+| `CLASSIFYING…` | Still checking; writes are blocked until it finishes |
+
+A blocked write shows `Blocked: <org> is locked. ctrl+k → Unlock writes for this session.`
+
+**Unlocking.**
+- *For this session:* `ctrl+k` → **Unlock writes for this session**, then type the org's alias (or its username if it has no alias). This lasts until you quit and is never saved. **Lock writes** re-locks the org mid-session.
+- *Permanently*, or to protect a shared sandbox: add the org to `config.json` in the config directory (below), keyed by **username**, since aliases change:
+
+```json
+{
+  "orgs": {
+    "admin@acme.com":     { "writes": "unlocked" },
+    "admin@acme.com.uat": { "writes": "locked" }
+  }
+}
+```
+
+If `config.json` can't be parsed, or has a `writes` value other than `locked` / `unlocked`, every org is locked until you fix it.
+
+**Protected orgs** are prod orgs and any org whose config says `locked`. When a protected org is unlocked, writes still ask first:
+- a real deploy asks you to type the org's name instead of `y/n`
+- record saves and anonymous Apex ask `y/n`, naming the org
+
+Unprotected orgs behave as before: deploys ask `y/n`, and saves and Apex run immediately.
 
 ## Configuration
 
-Saved queries, history, and the on-disk schema cache live at:
+Saved queries, history, the write-gate `config.json` (see [Safety](#safety)), and the on-disk schema cache live at:
 
 ```
 ~/Library/Application Support/sf-tui/        (macOS)
