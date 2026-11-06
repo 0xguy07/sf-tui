@@ -48,6 +48,34 @@ sftui
 
 `sftui --version` prints the installed version.
 
+## Scripting
+
+The Why tab also runs without the TUI, for scripts, CI and `jq`:
+
+```
+sftui why <recordId> [--org <alias|username>] [--format text|json] [--refresh]
+```
+
+- `--org` defaults to the `sf` default target org (`sf config get target-org`).
+- `--format json` prints the full trace as one JSON document on stdout; diagnostics go to stderr, so piping always works.
+- `--refresh` bypasses the 24-hour automation cache, like `ctrl+r` in the TUI.
+- Read-only. It never goes near the [write gate](#safety).
+
+| Exit code | Meaning |
+|---|---|
+| `0` | Success, including partial results (failed sections are listed in `errors` and warned on stderr) |
+| `1` | Runtime failure: record not found, auth failure, `sf` missing |
+| `2` | Usage error: bad flags, invalid Id, no org |
+
+Who changed `Status`, and when:
+
+```
+sftui why 001XXXXXXXXXXXXXXX --org prod --format json \
+  | jq -r '.saves[] | select(any(.changes[]; .field=="Status")) | "\(.at) \(.user.name)"'
+```
+
+The JSON shape is the TUI's trace structure; see the [Scripting and JSON](https://github.com/0xguy07/sf-tui/wiki/Scripting-and-JSON) wiki page for the field reference. It is unstable until 1.0.
+
 ## Tabs
 
 | Key      | Tab              | What it does |
@@ -138,6 +166,7 @@ sftui
 - [x] Real (non-dry-run) deploy from the Meta tab
 - [x] Production safety gate: prod orgs locked by default; session or config unlock
 - [x] Why tab: record field-history timeline + automation in order of execution, with possible writers per field
+- [x] `sftui why <recordId>`: the Why trace as text or JSON, for scripts and CI
 
 ## Safety
 
