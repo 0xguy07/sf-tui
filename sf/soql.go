@@ -53,5 +53,5 @@ func sfCommandError(out []byte, err error) error {
 	if ee, ok := err.(*exec.ExitError); ok && len(bytes.TrimSpace(ee.Stderr)) > 0 {
 		return fmt.Errorf("%s", bytes.TrimSpace(ee.Stderr))
 	}
-	return fmt.Errorf("sf data query: %w", err)
+	return fmt.Errorf("sf: %w", err)
 }
