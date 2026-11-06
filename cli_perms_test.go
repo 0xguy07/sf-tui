@@ -266,7 +266,10 @@ func TestPermsDiff_ResolvesBothBeforeFetching(t *testing.T) {
 	d, _ := diffDeps(t)
 	fetched := 0
 	inner := d.perms
-	d.perms = func(org string, u sf.UserBrief, object string) (sf.PermissionsReport, error) { fetched++; return inner(org, u, object) }
+	d.perms = func(org string, u sf.UserBrief, object string) (sf.PermissionsReport, error) {
+		fetched++
+		return inner(org, u, object)
+	}
 	if code, _, _ := runPermsCapture(t, d, "alex@acme.example", "--diff", "nobody", "--org", "x"); code != 2 || fetched != 0 {
 		t.Errorf("a bad --diff user must fail before any report is fetched: exit=%d fetched=%d", code, fetched)
 	}
