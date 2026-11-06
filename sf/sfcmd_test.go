@@ -171,7 +171,10 @@ func TestResolveUser_Timeout(t *testing.T) {
 
 func TestBuildSchemaDiff_DescribeTimeoutIsSectionError(t *testing.T) {
 	fakeSF(t, sleepingSF)
-	withTimeout(t, 100*time.Millisecond)
+	// The sobject lists must answer, so leave them a full second: on a cold,
+	// race-instrumented run a shell script can take longer than 100ms to start.
+	// The describes sleep 5s and still time out.
+	withTimeout(t, time.Second)
 	d, err := BuildSchemaDiff(DefaultSchemaLoader(), "a", "b", CompareOptions{Object: "Account", Refresh: true})
 	if err != nil {
 		t.Fatalf("sobject lists answer, so no hard error expected: %v", err)
