@@ -35,7 +35,7 @@ func runLimits(args []string, stdout, stderr io.Writer, d cliDeps) int {
 	}
 	if len(pos) > 0 || fs.NArg() > 0 {
 		extra := append(pos, fs.Args()...)
-		fmt.Fprintf(stderr, "limits: unexpected argument %q\n", extra[0])
+		fmt.Fprintf(stderr, "limits: unexpected argument %q (use --org %s to pick the org)\n", extra[0], extra[0])
 		return 2
 	}
 	format = strings.ToLower(format)
