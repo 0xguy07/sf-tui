@@ -38,6 +38,69 @@ type limitsResult struct {
 	Result []Limit `json:"result"`
 }
 
+// ParseLimits decodes `sf limits api display --json` output.
+func ParseLimits(out []byte) ([]Limit, error) {
+	var r limitsResult
+	if err := json.Unmarshal(out, &r); err != nil {
+		return nil, fmt.Errorf("parse limits: %w", err)
+	}
+	return r.Result, nil
+}
+
+// LimitUsage is one limit with its derived usage, for reports.
+type LimitUsage struct {
+	Name      string  `json:"name"`
+	Max       int     `json:"max"`
+	Remaining int     `json:"remaining"`
+	Used      int     `json:"used"`
+	Pct       float64 `json:"pct"` // 0–100, one decimal
+}
+
+// LimitsReport is the non-interactive `sftui limits` answer.
+type LimitsReport struct {
+	Org      string       `json:"org"`
+	Limits   []LimitUsage `json:"limits"`         // sorted by Pct desc, then Name
+	Warn     *int         `json:"warn,omitempty"` // the --warn threshold, when given
+	Breached []string     `json:"breached"`       // names with Pct >= Warn; never null
+}
+
+// BuildLimitsReport derives usage, sorts, and applies an optional threshold.
+func BuildLimitsReport(limits []Limit, org string, warn *int) LimitsReport {
+	r := LimitsReport{Org: org, Limits: make([]LimitUsage, 0, len(limits)), Warn: warn, Breached: []string{}}
+	for _, l := range limits {
+		pct := float64(int(l.Pct()*1000+0.5)) / 10 // one decimal
+		r.Limits = append(r.Limits, LimitUsage{Name: l.Name, Max: l.Max, Remaining: l.Remaining, Used: l.Used(), Pct: pct})
+	}
+	sort.SliceStable(r.Limits, func(i, j int) bool {
+		if r.Limits[i].Pct != r.Limits[j].Pct {
+			return r.Limits[i].Pct > r.Limits[j].Pct
+		}
+		return r.Limits[i].Name < r.Limits[j].Name
+	})
+	if warn != nil {
+		for _, l := range r.Limits {
+			if l.Pct >= float64(*warn) {
+				r.Breached = append(r.Breached, l.Name)
+			}
+		}
+	}
+	return r
+}
+
+// HumanInt formats counts compactly: 9999, 10.0K, 1.5M, 2.0B.
+func HumanInt(n int) string {
+	switch {
+	case n >= 1_000_000_000:
+		return fmt.Sprintf("%.1fB", float64(n)/1_000_000_000)
+	case n >= 1_000_000:
+		return fmt.Sprintf("%.1fM", float64(n)/1_000_000)
+	case n >= 10_000:
+		return fmt.Sprintf("%.1fK", float64(n)/1_000)
+	default:
+		return fmt.Sprintf("%d", n)
+	}
+}
+
 func LoadLimits(orgAliasOrUser string) tea.Cmd {
 	return func() tea.Msg {
 		if orgAliasOrUser == "" {
@@ -50,14 +113,17 @@ func LoadLimits(orgAliasOrUser string) tea.Cmd {
 		if err != nil {
 			return ErrMsg{Err: sfCommandError("sf limits api display", out, err)}
 		}
-		var r limitsResult
-		if err := json.Unmarshal(out, &r); err != nil {
-			return ErrMsg{Err: fmt.Errorf("parse limits: %w", err)}
+		limits, err := ParseLimits(out)
+		if err != nil {
+			return ErrMsg{Err: err}
 		}
 		// Sort by usage % descending so the interesting ones are at the top.
-		sort.Slice(r.Result, func(i, j int) bool {
-			return r.Result[i].Pct() > r.Result[j].Pct()
+		sort.SliceStable(limits, func(i, j int) bool {
+			if limits[i].Pct() != limits[j].Pct() {
+				return limits[i].Pct() > limits[j].Pct()
+			}
+			return limits[i].Name < limits[j].Name
 		})
-		return LimitsLoadedMsg{Limits: r.Result}
+		return LimitsLoadedMsg{Limits: limits}
 	}
 }
