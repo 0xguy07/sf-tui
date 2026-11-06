@@ -118,10 +118,7 @@ func clip(s string, width int) string {
 	}
 	// Strip newlines so cells don't break the table layout.
 	s = strings.ReplaceAll(s, "\n", " ")
-	if len(s) <= width {
-		return s
-	}
-	return s[:width-1] + "…"
+	return cutRunes(s, width)
 }
 
 func (r Results) Update(msg tea.Msg) (Results, tea.Cmd) {

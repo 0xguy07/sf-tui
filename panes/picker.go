@@ -36,10 +36,7 @@ func (i queryItem) FilterValue() string { return i.q.Name + " " + i.q.SOQL + " "
 
 func oneLine(s string, max int) string {
 	s = strings.ReplaceAll(s, "\n", " ")
-	if len(s) > max {
-		s = s[:max-1] + "…"
-	}
-	return s
+	return cutRunes(s, max)
 }
 
 type Picker struct {

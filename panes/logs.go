@@ -101,10 +101,7 @@ func renderInspector(events []sf.ApexEvent) string {
 
 func truncateOne(s string, max int) string {
 	s = strings.ReplaceAll(s, "\n", " ")
-	if len(s) > max {
-		return s[:max-1] + "…"
-	}
-	return s
+	return cutRunes(s, max)
 }
 
 func (l *Logs) SetStatus(msg string) {
