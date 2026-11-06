@@ -67,3 +67,27 @@ func TestRenderSchemaDiffText_NoANSI(t *testing.T) {
 		t.Error("ANSI escapes in output")
 	}
 }
+
+func TestRenderSchemaDiffText_FieldLevelZeroObjects(t *testing.T) {
+	d := fixtureDiff(t)
+	d.Fields, d.FieldLevel = []sf.ObjectFieldDiff{}, true
+	d.Summary.ObjectsCompared, d.Summary.ObjectsChanged = 0, 0
+	if out := renderSchemaDiffText(d); !strings.Contains(out, "Fields: 0 objects compared, 0 with differences") {
+		t.Errorf("Fields line missing when field level ran on zero objects:\n%s", out)
+	}
+}
+
+func TestRenderSchemaDiffText_ObjectModeIdentical(t *testing.T) {
+	ident := sf.ObjectFieldDiff{SObject: "Account", OnlyA: []sf.FieldBrief{}, OnlyB: []sf.FieldBrief{}, Changed: []sf.FieldChange{}, Same: 3}
+	d := fixtureDiff(t)
+	d.FieldLevel, d.Object, d.Fields = true, "Account", []sf.ObjectFieldDiff{ident}
+	d.Summary.ObjectsCompared, d.Summary.ObjectsChanged = 1, 0
+	if out := renderSchemaDiffText(d); !strings.Contains(out, "Account: no field-level differences (3 fields)") {
+		t.Errorf("--object identical line missing:\n%s", out)
+	}
+	// Under --fields (no Object), identical objects are omitted even if only one was compared.
+	d.Object = ""
+	if out := renderSchemaDiffText(d); strings.Contains(out, "no field-level differences") {
+		t.Errorf("--fields mode should omit identical objects:\n%s", out)
+	}
+}

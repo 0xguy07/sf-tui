@@ -40,11 +40,13 @@ func renderSchemaDiffText(d sf.SchemaDiff) string {
 	writeObjects("Only in A:", "-", sf.StateOnlyA)
 	writeObjects("Only in B:", "+", sf.StateOnlyB)
 
-	if d.Summary.ObjectsCompared > 0 || len(d.Fields) > 0 {
+	if d.FieldLevel {
 		fmt.Fprintf(&b, "Fields: %d objects compared, %d with differences\n\n", d.Summary.ObjectsCompared, d.Summary.ObjectsChanged)
 		for _, f := range d.Fields {
 			if !f.Different {
-				if d.Summary.ObjectsCompared == 1 {
+				// --object asked about this one object, so say so; under
+				// --fields identical objects are simply omitted.
+				if d.Object != "" {
 					fmt.Fprintf(&b, "%s: no field-level differences (%d fields)\n\n", f.SObject, f.Same)
 				}
 				continue

@@ -36,6 +36,7 @@
       "state": "both"
     }
   ],
+  "fieldLevel": true,
   "fields": [
     {
       "sobject": "Account",
@@ -71,7 +72,7 @@
         {
           "name": "Name",
           "attrs": [
-            "length: 80 → 255"
+            "length: 80 \u2192 255"
           ]
         },
         {
