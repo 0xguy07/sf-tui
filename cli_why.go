@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -53,18 +52,9 @@ func runWhy(args []string, stdout, stderr io.Writer, d cliDeps) int {
 		return 2
 	}
 
-	if org == "" && d.defaultOrg != nil {
-		dflt, err := d.defaultOrg()
-		if err != nil {
-			// The sf CLI itself failed (missing, broken): a runtime failure, not a usage error.
-			fmt.Fprintf(stderr, "why: %v\n", err)
-			return 1
-		}
-		org = dflt
-	}
-	if org == "" {
-		fmt.Fprintln(stderr, "why: no org: pass --org <alias> or run: sf config set target-org=<alias>")
-		return 2
+	org, code := resolveOrg(org, d, prefixWriter{stderr, "why: "})
+	if code != 0 {
+		return code
 	}
 
 	tr, err := d.trace(org, id, refresh)
@@ -73,21 +63,20 @@ func runWhy(args []string, stdout, stderr io.Writer, d cliDeps) int {
 		return 1
 	}
 
-	switch format {
-	case "json":
-		b, err := json.MarshalIndent(tr, "", "  ")
-		if err != nil {
-			fmt.Fprintf(stderr, "why: encode: %v\n", err)
-			return 1
-		}
-		stdout.Write(append(b, '\n'))
-	default:
-		io.WriteString(stdout, renderTraceText(tr))
+	return writeReport(stdout, prefixWriter{stderr, "why: "}, format, tr, func() string { return renderTraceText(tr) }, tr.Errors)
+}
+
+// prefixWriter prefixes each write with a command name, for stderr lines.
+type prefixWriter struct {
+	w      io.Writer
+	prefix string
+}
+
+func (p prefixWriter) Write(b []byte) (int, error) {
+	if _, err := io.WriteString(p.w, p.prefix); err != nil {
+		return 0, err
 	}
-	for _, e := range tr.Errors {
-		fmt.Fprintf(stderr, "warning: %s: %s\n", e.Section, e.Message)
-	}
-	return 0
+	return p.w.Write(b)
 }
 
 // splitPositional pulls the first non-flag argument out as the record Id so
@@ -95,7 +84,7 @@ func runWhy(args []string, stdout, stderr io.Writer, d cliDeps) int {
 // after it is positional. Any positional beyond the Id is handed back after a
 // "--" so flag.Parse leaves it in fs.Args() for the caller to reject.
 func splitPositional(args []string) (id string, rest []string) {
-	takesValue := map[string]bool{"--org": true, "-org": true, "--o": true, "-o": true, "--format": true, "-format": true}
+	takesValue := map[string]bool{"--org": true, "-org": true, "--o": true, "-o": true, "--format": true, "-format": true, "--object": true, "-object": true}
 	var extra []string
 	take := func(a string) {
 		if id == "" {
