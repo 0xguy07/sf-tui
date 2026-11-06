@@ -55,3 +55,21 @@ func TestRenderLimitsText_NoANSI(t *testing.T) {
 		t.Error("ANSI in output")
 	}
 }
+
+func TestRenderLimitsText_Aligned(t *testing.T) {
+	r := fixtureLimits(t, intp(90))
+	r.Limits = append(r.Limits, sf.LimitUsage{Name: "PrivateConnectOutboundCalloutHourlyLimitMB", Max: 1000, Remaining: 1000})
+	out := renderLimitsText(r)
+	col := -1
+	for _, line := range strings.Split(out, "\n") {
+		if !strings.HasPrefix(line, "  ") || !strings.Contains(line, "%") {
+			continue
+		}
+		p := strings.Index(line, "%")
+		if col == -1 {
+			col = p
+		} else if p != col {
+			t.Errorf("percent column drifts: %d vs %d in %q", p, col, line)
+		}
+	}
+}
