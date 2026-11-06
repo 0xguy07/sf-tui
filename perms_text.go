@@ -17,7 +17,11 @@ func renderPermissionsText(r sf.PermissionsReport) string {
 		head += "  [inactive]"
 	}
 	fmt.Fprintln(&b, head)
-	fmt.Fprintf(&b, "Profile: %s\n\n", r.User.ProfileName)
+	profile := r.User.ProfileName
+	if profile == "" {
+		profile = "(none)"
+	}
+	fmt.Fprintf(&b, "Profile: %s\n\n", profile)
 
 	fmt.Fprintf(&b, "Assignments (%d):\n", len(r.Assignments))
 	for _, a := range r.Assignments {

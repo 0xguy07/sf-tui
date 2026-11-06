@@ -440,6 +440,9 @@ func loadHistoryUsers(api whyAPI, ids []string) (map[string]HistoryUser, error) 
 
 func (t *Trace) ApplyHistory(p HistoryPart) {
 	t.TrackedFields = p.TrackedFields
+	if t.TrackedFields == nil {
+		t.TrackedFields = []string{} // never null in JSON
+	}
 	t.Saves = p.Saves
 	t.HistoryTruncated = p.Truncated
 	t.Errors = append(t.Errors, p.Errors...)

@@ -36,22 +36,23 @@ func decodeRecords(out []byte) ([]map[string]any, error) {
 	return r.Result.Records, nil
 }
 
-// sfCommandError turns a failed `sf … --json` run into a useful error. Since
-// sf CLI v48, --json writes the error object to stdout; stderr only carries
-// warnings. So prefer the stdout JSON message, then stderr, then the exit error.
-func sfCommandError(out []byte, err error) error {
+// sfCommandError turns a failed `sf … --json` run into a useful error
+// prefixed with the command label. Since sf CLI v48, --json writes the error
+// object to stdout; stderr only carries warnings. So prefer the stdout JSON
+// message, then stderr, then the exit error.
+func sfCommandError(label string, out []byte, err error) error {
 	var r struct {
 		Name    string `json:"name"`
 		Message string `json:"message"`
 	}
 	if jerr := json.Unmarshal(out, &r); jerr == nil && r.Message != "" {
 		if r.Name != "" {
-			return fmt.Errorf("%s: %s", r.Name, r.Message)
+			return fmt.Errorf("%s: %s: %s", label, r.Name, r.Message)
 		}
-		return fmt.Errorf("%s", r.Message)
+		return fmt.Errorf("%s: %s", label, r.Message)
 	}
 	if ee, ok := err.(*exec.ExitError); ok && len(bytes.TrimSpace(ee.Stderr)) > 0 {
-		return fmt.Errorf("%s", bytes.TrimSpace(ee.Stderr))
+		return fmt.Errorf("%s: %s", label, bytes.TrimSpace(ee.Stderr))
 	}
-	return fmt.Errorf("sf: %w", err)
+	return fmt.Errorf("%s: %w", label, err)
 }

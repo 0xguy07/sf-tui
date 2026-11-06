@@ -248,3 +248,11 @@ func TestWhy_WarningLineFormat(t *testing.T) {
 		t.Errorf("warning line must be exactly 'warning: <section>: <message>', stderr=%q", se)
 	}
 }
+
+func TestWhy_NotFoundNamesIdAndOrg(t *testing.T) {
+	d, _ := stubDeps(sf.Trace{}, sf.ErrRecordNotFound, "")
+	code, so, se := runWhyCapture(t, d, goodID, "--org", "x")
+	if code != 1 || so != "" || !strings.Contains(se, goodID) || !strings.Contains(se, " in x") {
+		t.Errorf("exit=%d stdout=%q stderr=%q", code, so, se)
+	}
+}

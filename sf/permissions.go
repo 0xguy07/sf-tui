@@ -86,7 +86,8 @@ type FieldPermissionsLoadedMsg struct {
 }
 
 func soqlEscape(s string) string {
-	return strings.ReplaceAll(s, "'", "\\'")
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	return strings.ReplaceAll(s, "'", `\'`)
 }
 
 // LoadUsers grabs the active users in the org for the user picker.
@@ -177,7 +178,7 @@ func runSOQLRaw(orgAliasOrUser, soql string, tooling bool) ([]byte, error) {
 	cmd := exec.Command("sf", args...)
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, sfCommandError(out, err)
+		return nil, sfCommandError("sf data query", out, err)
 	}
 	return out, nil
 }

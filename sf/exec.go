@@ -77,14 +77,7 @@ func runQueryArgs(orgAliasOrUser, soql string, tooling bool) tea.Cmd {
 		cmd := exec.Command("sf", args...)
 		out, err := cmd.Output()
 		if err != nil {
-			if ee, ok := err.(*exec.ExitError); ok && len(ee.Stderr) > 0 {
-				return ErrMsg{Err: fmt.Errorf("%s", string(ee.Stderr))}
-			}
-			var r QueryResult
-			if jerr := json.Unmarshal(out, &r); jerr == nil && r.Message != "" {
-				return ErrMsg{Err: fmt.Errorf("%s", r.Message)}
-			}
-			return ErrMsg{Err: fmt.Errorf("sf data query: %w", err)}
+			return ErrMsg{Err: sfCommandError("sf data query", out, err)}
 		}
 		var r QueryResult
 		if err := json.Unmarshal(out, &r); err != nil {
