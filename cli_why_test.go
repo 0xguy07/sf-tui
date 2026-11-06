@@ -160,3 +160,72 @@ func TestWhy_JSONRoundTrips(t *testing.T) {
 		t.Error("JSON output does not round-trip to the input Trace")
 	}
 }
+
+func TestWhy_ExtraPositionalRejected(t *testing.T) {
+	d, calls := stubDeps(fixtureTrace(t), nil, "dflt")
+	code, so, se := runWhyCapture(t, d, goodID, "001000000000002AAA", "--org", "x")
+	if code != 2 || !strings.Contains(se, "unexpected argument") || so != "" || len(*calls) != 0 {
+		t.Errorf("exit=%d stdout=%q stderr=%q calls=%d", code, so, se, len(*calls))
+	}
+}
+
+func TestWhy_DoubleDashEndsFlags(t *testing.T) {
+	d, calls := stubDeps(fixtureTrace(t), nil, "dflt")
+	if code, _, se := runWhyCapture(t, d, "--org", "x", "--", goodID); code != 0 {
+		t.Fatalf("exit %d, stderr %q", code, se)
+	}
+	if len(*calls) != 1 || (*calls)[0].org != "x" {
+		t.Errorf("calls = %+v, want one call with org x", *calls)
+	}
+	// After "--" everything is positional, so a flag there is an extra argument.
+	d, calls = stubDeps(fixtureTrace(t), nil, "dflt")
+	if code, _, se := runWhyCapture(t, d, "--", goodID, "--org", "x"); code != 2 || !strings.Contains(se, "unexpected argument") || len(*calls) != 0 {
+		t.Errorf("exit=%d stderr=%q calls=%d", code, se, len(*calls))
+	}
+}
+
+func TestSplitPositional(t *testing.T) {
+	cases := []struct {
+		in   []string
+		id   string
+		rest []string
+	}{
+		{[]string{goodID, "-o=x"}, goodID, []string{"-o=x"}},
+		{[]string{"--format=json", goodID}, goodID, []string{"--format=json"}},
+		{[]string{"--refresh", goodID}, goodID, []string{"--refresh"}},
+		{[]string{goodID, "-o"}, goodID, []string{"-o"}},
+		{[]string{"--org", "x", goodID}, goodID, []string{"--org", "x"}},
+		{[]string{"--", goodID}, goodID, nil},
+		{[]string{goodID, "second"}, goodID, []string{"--", "second"}},
+	}
+	for _, c := range cases {
+		id, rest := splitPositional(c.in)
+		if id != c.id || !reflect.DeepEqual(rest, c.rest) {
+			t.Errorf("splitPositional(%v) = %q, %v; want %q, %v", c.in, id, rest, c.id, c.rest)
+		}
+	}
+}
+
+func TestWhy_HelpExit0(t *testing.T) {
+	d, calls := stubDeps(fixtureTrace(t), nil, "")
+	code, so, se := runWhyCapture(t, d, "--help")
+	if code != 0 || !strings.Contains(so, "sftui why") || se != "" || len(*calls) != 0 {
+		t.Errorf("exit=%d stdout=%q stderr=%q calls=%d", code, so, se, len(*calls))
+	}
+}
+
+func TestWhy_DefaultOrgErrorExit1(t *testing.T) {
+	d := cliDeps{
+		trace: func(string, string, bool) (sf.Trace, error) {
+			t.Fatal("trace must not be called")
+			return sf.Trace{}, nil
+		},
+		defaultOrg: func() (string, error) {
+			return "", errors.New(`sf config get target-org: exec: "sf": executable file not found`)
+		},
+	}
+	code, so, se := runWhyCapture(t, d, goodID)
+	if code != 1 || !strings.Contains(se, "executable file not found") || so != "" {
+		t.Errorf("exit=%d stdout=%q stderr=%q", code, so, se)
+	}
+}

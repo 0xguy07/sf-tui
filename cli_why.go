@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -17,6 +18,7 @@ func runWhy(args []string, stdout, stderr io.Writer, d cliDeps) int {
 
 	fs := flag.NewFlagSet("why", flag.ContinueOnError)
 	fs.SetOutput(stderr)
+	fs.Usage = func() {} // printed by hand below so help goes to stdout and errors to stderr
 	var org, format string
 	var refresh bool
 	fs.StringVar(&org, "org", "", "org alias or username")
@@ -24,6 +26,15 @@ func runWhy(args []string, stdout, stderr io.Writer, d cliDeps) int {
 	fs.StringVar(&format, "format", "text", "text or json")
 	fs.BoolVar(&refresh, "refresh", false, "bypass the automation cache")
 	if err := fs.Parse(rest); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			fmt.Fprint(stdout, usage())
+			return 0
+		}
+		fmt.Fprint(stderr, "\n"+usage())
+		return 2
+	}
+	if fs.NArg() > 0 {
+		fmt.Fprintf(stderr, "why: unexpected argument %q (one record Id only)\n", fs.Arg(0))
 		return 2
 	}
 
@@ -45,7 +56,9 @@ func runWhy(args []string, stdout, stderr io.Writer, d cliDeps) int {
 	if org == "" && d.defaultOrg != nil {
 		dflt, err := d.defaultOrg()
 		if err != nil {
+			// The sf CLI itself failed (missing, broken): a runtime failure, not a usage error.
 			fmt.Fprintf(stderr, "why: %v\n", err)
+			return 1
 		}
 		org = dflt
 	}
@@ -78,25 +91,40 @@ func runWhy(args []string, stdout, stderr io.Writer, d cliDeps) int {
 }
 
 // splitPositional pulls the first non-flag argument out as the record Id so
-// it may appear before or after the flags. Everything else is handed to
-// flag.Parse in its original order.
+// it may appear before or after the flags. "--" ends flag parsing: everything
+// after it is positional. Any positional beyond the Id is handed back after a
+// "--" so flag.Parse leaves it in fs.Args() for the caller to reject.
 func splitPositional(args []string) (id string, rest []string) {
 	takesValue := map[string]bool{"--org": true, "-org": true, "--o": true, "-o": true, "--format": true, "-format": true}
+	var extra []string
+	take := func(a string) {
+		if id == "" {
+			id = a
+		} else {
+			extra = append(extra, a)
+		}
+	}
 	for i := 0; i < len(args); i++ {
 		a := args[i]
+		if a == "--" {
+			for _, p := range args[i+1:] {
+				take(p)
+			}
+			break
+		}
 		if strings.HasPrefix(a, "-") {
 			rest = append(rest, a)
-			if takesValue[a] && !strings.Contains(a, "=") && i+1 < len(args) {
+			if takesValue[a] && i+1 < len(args) {
 				i++
 				rest = append(rest, args[i])
 			}
 			continue
 		}
-		if id == "" {
-			id = a
-			continue
-		}
-		rest = append(rest, a)
+		take(a)
+	}
+	if len(extra) > 0 {
+		rest = append(rest, "--")
+		rest = append(rest, extra...)
 	}
 	return id, rest
 }
