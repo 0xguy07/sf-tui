@@ -46,6 +46,8 @@ This installs a binary named `sf-tui` into `$(go env GOPATH)/bin` — make sure 
 sftui
 ```
 
+`sftui --version` prints the installed version.
+
 ## Tabs
 
 | Key      | Tab              | What it does |
