@@ -4,18 +4,30 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
-	"sort"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type UserBrief struct {
-	ID          string `json:"Id"`
-	Name        string `json:"Name"`
-	Username    string `json:"Username"`
-	IsActive    bool   `json:"IsActive"`
-	ProfileName string // flattened from Profile.Name
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Username    string `json:"username"`
+	IsActive    bool   `json:"isActive"`
+	ProfileName string `json:"profile,omitempty"` // flattened from Profile.Name
+}
+
+// PermissionsReport is the full answer to "what can this user do, and which
+// permission set or profile grants it?" for one user. Sections that fail to
+// load are recorded in Errors; the rest of the report stands.
+type PermissionsReport struct {
+	User        UserBrief           `json:"user"`
+	Assignments []PermSetAssignment `json:"assignments"`
+	Overrides   Overrides           `json:"overrides"`
+	Objects     []ObjectPerm        `json:"objects"`
+	Object      string              `json:"object,omitempty"` // the --object value, "" otherwise
+	Fields      []FieldPerm         `json:"fields"`           // populated only when Object != ""; never null
+	Errors      []SectionError      `json:"errors"`
 }
 
 type UsersLoadedMsg struct {
@@ -23,34 +35,48 @@ type UsersLoadedMsg struct {
 }
 
 type PermSetAssignment struct {
-	PermSetID    string
-	PermSetLabel string
-	IsProfile    bool
-	ProfileName  string // when IsProfile
+	PermSetID    string `json:"permSetId"`
+	PermSetLabel string `json:"label"`
+	IsProfile    bool   `json:"isProfile"`
+	ProfileName  string `json:"profileName,omitempty"` // when IsProfile
+	GroupLabel   string `json:"groupLabel,omitempty"`  // PermissionSetGroup.MasterLabel when assigned via a group
+}
+
+// Overrides are system permissions on an assigned permission set that
+// override object permissions. They are reported, not applied to Objects.
+type Overrides struct {
+	ModifyAllData []string `json:"modifyAllData"`
+	ViewAllData   []string `json:"viewAllData"`
 }
 
 type ObjectPerm struct {
-	SObject   string
-	Read      bool
-	Create    bool
-	Edit      bool
-	Delete    bool
-	ViewAll   bool
-	ModifyAll bool
-	Sources   []string // perm set / profile labels granting any of these
+	SObject   string   `json:"sobject"`
+	Read      bool     `json:"read"`
+	Create    bool     `json:"create"`
+	Edit      bool     `json:"edit"`
+	Delete    bool     `json:"delete"`
+	ViewAll   bool     `json:"viewAll"`
+	ModifyAll bool     `json:"modifyAll"`
+	Sources   []string `json:"sources"` // perm set / profile labels granting any of these
+	// Grants lists, per permission (PermRead … PermModifyAll), the sources
+	// that grant it. Every key is present; an empty slice means not granted.
+	Grants map[string][]string `json:"grants"`
 }
 
 type PermissionsLoadedMsg struct {
 	User        UserBrief
 	Assignments []PermSetAssignment
 	Objects     []ObjectPerm // sorted, deduped by SObject
+	Overrides   Overrides    // Modify/View All Data granted by any assigned set
 }
 
 type FieldPerm struct {
-	Field   string // API name without sobject prefix (e.g. "Industry")
-	Read    bool
-	Edit    bool
-	Sources []string
+	Field   string   `json:"field"` // API name without sobject prefix (e.g. "Industry")
+	Read    bool     `json:"read"`
+	Edit    bool     `json:"edit"`
+	Sources []string `json:"sources"`
+	// Grants: PermRead and PermEdit → sources. Every key present.
+	Grants map[string][]string `json:"grants"`
 }
 
 type FieldPermissionsLoadedMsg struct {
@@ -99,144 +125,25 @@ func LoadUsers(orgAliasOrUser string) tea.Cmd {
 	}
 }
 
-// LoadPermissions fetches assignments + object perms for one user.
+// LoadPermissions fetches assignments, overrides and object perms for one user.
 func LoadPermissions(orgAliasOrUser string, user UserBrief) tea.Cmd {
 	return func() tea.Msg {
 		if orgAliasOrUser == "" {
 			return ErrMsg{Err: fmt.Errorf("no org selected")}
 		}
-
-		// 1. Assignments.
-		soql := fmt.Sprintf(
-			"SELECT PermissionSetId, PermissionSet.Label, PermissionSet.IsOwnedByProfile, PermissionSet.Profile.Name "+
-				"FROM PermissionSetAssignment WHERE AssigneeId = '%s'",
-			soqlEscape(user.ID),
-		)
-		out, err := runSOQLRaw(orgAliasOrUser, soql, false)
+		r, err := BuildPermissionsReport(DefaultSOQLRunner(), orgAliasOrUser, user, "")
 		if err != nil {
 			return ErrMsg{Err: err}
 		}
-		var a struct {
-			Result struct {
-				Records []map[string]any `json:"records"`
-			} `json:"result"`
+		if len(r.Errors) > 0 {
+			return ErrMsg{Err: fmt.Errorf("%s: %s", r.Errors[0].Section, r.Errors[0].Message)}
 		}
-		if err := json.Unmarshal(out, &a); err != nil {
-			return ErrMsg{Err: fmt.Errorf("parse assignments: %w", err)}
-		}
-
-		assignments := make([]PermSetAssignment, 0, len(a.Result.Records))
-		permSetIDs := make([]string, 0, len(a.Result.Records))
-		for _, rec := range a.Result.Records {
-			as := PermSetAssignment{PermSetID: stringField(rec, "PermissionSetId")}
-			if ps, ok := rec["PermissionSet"].(map[string]any); ok {
-				as.PermSetLabel = stringField(ps, "Label")
-				as.IsProfile = boolField(ps, "IsOwnedByProfile")
-				if prof, ok := ps["Profile"].(map[string]any); ok {
-					as.ProfileName = stringField(prof, "Name")
-				}
-			}
-			assignments = append(assignments, as)
-			if as.PermSetID != "" {
-				permSetIDs = append(permSetIDs, as.PermSetID)
-			}
-		}
-
-		// 2. Object perms across all assigned permission sets.
-		objectPerms := []ObjectPerm{}
-		if len(permSetIDs) > 0 {
-			ids := "'" + strings.Join(permSetIDs, "','") + "'"
-			soql := fmt.Sprintf(
-				"SELECT SobjectType, PermissionsRead, PermissionsCreate, PermissionsEdit, PermissionsDelete, "+
-					"PermissionsViewAllRecords, PermissionsModifyAllRecords, ParentId "+
-					"FROM ObjectPermissions WHERE ParentId IN (%s)", ids,
-			)
-			out, err := runSOQLRaw(orgAliasOrUser, soql, false)
-			if err != nil {
-				return ErrMsg{Err: err}
-			}
-			var op struct {
-				Result struct {
-					Records []map[string]any `json:"records"`
-				} `json:"result"`
-			}
-			if err := json.Unmarshal(out, &op); err != nil {
-				return ErrMsg{Err: fmt.Errorf("parse object perms: %w", err)}
-			}
-
-			parentLabels := map[string]string{}
-			for _, as := range assignments {
-				label := as.PermSetLabel
-				if as.IsProfile && as.ProfileName != "" {
-					label = "Profile: " + as.ProfileName
-				}
-				parentLabels[as.PermSetID] = label
-			}
-
-			byObject := map[string]*ObjectPerm{}
-			for _, rec := range op.Result.Records {
-				name := stringField(rec, "SobjectType")
-				if name == "" {
-					continue
-				}
-				existing, ok := byObject[name]
-				if !ok {
-					existing = &ObjectPerm{SObject: name}
-					byObject[name] = existing
-				}
-				granted := false
-				if boolField(rec, "PermissionsRead") {
-					existing.Read = true
-					granted = true
-				}
-				if boolField(rec, "PermissionsCreate") {
-					existing.Create = true
-					granted = true
-				}
-				if boolField(rec, "PermissionsEdit") {
-					existing.Edit = true
-					granted = true
-				}
-				if boolField(rec, "PermissionsDelete") {
-					existing.Delete = true
-					granted = true
-				}
-				if boolField(rec, "PermissionsViewAllRecords") {
-					existing.ViewAll = true
-					granted = true
-				}
-				if boolField(rec, "PermissionsModifyAllRecords") {
-					existing.ModifyAll = true
-					granted = true
-				}
-				if granted {
-					if label := parentLabels[stringField(rec, "ParentId")]; label != "" && !contains(existing.Sources, label) {
-						existing.Sources = append(existing.Sources, label)
-					}
-				}
-			}
-
-			objectPerms = make([]ObjectPerm, 0, len(byObject))
-			for _, v := range byObject {
-				objectPerms = append(objectPerms, *v)
-			}
-			sort.Slice(objectPerms, func(i, j int) bool {
-				return objectPerms[i].SObject < objectPerms[j].SObject
-			})
-		}
-
-		return PermissionsLoadedMsg{
-			User:        user,
-			Assignments: assignments,
-			Objects:     objectPerms,
-		}
+		return PermissionsLoadedMsg{User: r.User, Assignments: r.Assignments, Objects: r.Objects, Overrides: r.Overrides}
 	}
 }
 
 // LoadFieldPermissions fetches field-level read/edit perms for one user on one
-// sobject, with the perm set / profile labels that grant them. Requires the
-// user to already have at least one perm set assignment loaded — we re-query
-// PermissionSetAssignment to keep this self-contained.
+// sobject, with the perm set / profile labels that grant them.
 func LoadFieldPermissions(orgAliasOrUser string, user UserBrief, sobject string) tea.Cmd {
 	return func() tea.Msg {
 		if orgAliasOrUser == "" {
@@ -245,107 +152,16 @@ func LoadFieldPermissions(orgAliasOrUser string, user UserBrief, sobject string)
 		if sobject == "" {
 			return ErrMsg{Err: fmt.Errorf("no sobject specified")}
 		}
-
-		// 1. Re-fetch assignments to get parent IDs and labels.
-		soql := fmt.Sprintf(
-			"SELECT PermissionSetId, PermissionSet.Label, PermissionSet.IsOwnedByProfile, PermissionSet.Profile.Name "+
-				"FROM PermissionSetAssignment WHERE AssigneeId = '%s'",
-			soqlEscape(user.ID),
-		)
-		out, err := runSOQLRaw(orgAliasOrUser, soql, false)
+		r, err := BuildPermissionsReport(DefaultSOQLRunner(), orgAliasOrUser, user, sobject)
 		if err != nil {
 			return ErrMsg{Err: err}
 		}
-		var a struct {
-			Result struct {
-				Records []map[string]any `json:"records"`
-			} `json:"result"`
-		}
-		if err := json.Unmarshal(out, &a); err != nil {
-			return ErrMsg{Err: fmt.Errorf("parse assignments: %w", err)}
-		}
-		parentLabels := map[string]string{}
-		permSetIDs := []string{}
-		for _, rec := range a.Result.Records {
-			id := stringField(rec, "PermissionSetId")
-			if id == "" {
-				continue
-			}
-			permSetIDs = append(permSetIDs, id)
-			label := ""
-			if ps, ok := rec["PermissionSet"].(map[string]any); ok {
-				label = stringField(ps, "Label")
-				if boolField(ps, "IsOwnedByProfile") {
-					if prof, ok := ps["Profile"].(map[string]any); ok {
-						if name := stringField(prof, "Name"); name != "" {
-							label = "Profile: " + name
-						}
-					}
-				}
-			}
-			parentLabels[id] = label
-		}
-		if len(permSetIDs) == 0 {
-			return FieldPermissionsLoadedMsg{User: user, SObject: sobject}
-		}
-
-		// 2. FieldPermissions records. Field is stored as "SobjectType.FieldName".
-		ids := "'" + strings.Join(permSetIDs, "','") + "'"
-		soql = fmt.Sprintf(
-			"SELECT Field, PermissionsRead, PermissionsEdit, ParentId "+
-				"FROM FieldPermissions WHERE SobjectType = '%s' AND ParentId IN (%s)",
-			soqlEscape(sobject), ids,
-		)
-		out, err = runSOQLRaw(orgAliasOrUser, soql, false)
-		if err != nil {
-			return ErrMsg{Err: err}
-		}
-		var fp struct {
-			Result struct {
-				Records []map[string]any `json:"records"`
-			} `json:"result"`
-		}
-		if err := json.Unmarshal(out, &fp); err != nil {
-			return ErrMsg{Err: fmt.Errorf("parse field perms: %w", err)}
-		}
-
-		byField := map[string]*FieldPerm{}
-		for _, rec := range fp.Result.Records {
-			full := stringField(rec, "Field") // e.g. "Account.Industry"
-			name := full
-			if i := strings.IndexByte(full, '.'); i >= 0 {
-				name = full[i+1:]
-			}
-			if name == "" {
-				continue
-			}
-			existing, ok := byField[name]
-			if !ok {
-				existing = &FieldPerm{Field: name}
-				byField[name] = existing
-			}
-			granted := false
-			if boolField(rec, "PermissionsRead") {
-				existing.Read = true
-				granted = true
-			}
-			if boolField(rec, "PermissionsEdit") {
-				existing.Edit = true
-				granted = true
-			}
-			if granted {
-				if label := parentLabels[stringField(rec, "ParentId")]; label != "" && !contains(existing.Sources, label) {
-					existing.Sources = append(existing.Sources, label)
-				}
+		for _, e := range r.Errors {
+			if e.Section == "fields" {
+				return ErrMsg{Err: fmt.Errorf("fields: %s", e.Message)}
 			}
 		}
-		fields := make([]FieldPerm, 0, len(byField))
-		for _, v := range byField {
-			fields = append(fields, *v)
-		}
-		sort.Slice(fields, func(i, j int) bool { return fields[i].Field < fields[j].Field })
-
-		return FieldPermissionsLoadedMsg{User: user, SObject: sobject, Fields: fields}
+		return FieldPermissionsLoadedMsg{User: user, SObject: sobject, Fields: r.Fields}
 	}
 }
 
@@ -361,10 +177,7 @@ func runSOQLRaw(orgAliasOrUser, soql string, tooling bool) ([]byte, error) {
 	cmd := exec.Command("sf", args...)
 	out, err := cmd.Output()
 	if err != nil {
-		if ee, ok := err.(*exec.ExitError); ok && len(ee.Stderr) > 0 {
-			return nil, fmt.Errorf("%s", string(ee.Stderr))
-		}
-		return nil, fmt.Errorf("sf data query: %w", err)
+		return nil, sfCommandError(out, err)
 	}
 	return out, nil
 }

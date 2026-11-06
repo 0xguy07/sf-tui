@@ -1,0 +1,37 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "FieldPermissions"
+        },
+        "Field": "Account.Industry",
+        "PermissionsRead": true,
+        "PermissionsEdit": false,
+        "ParentId": "0PS000000000001AAA"
+      },
+      {
+        "attributes": {
+          "type": "FieldPermissions"
+        },
+        "Field": "Account.Industry",
+        "PermissionsRead": true,
+        "PermissionsEdit": true,
+        "ParentId": "0PS000000000002AAA"
+      },
+      {
+        "attributes": {
+          "type": "FieldPermissions"
+        },
+        "Field": "Account.Rating",
+        "PermissionsRead": true,
+        "PermissionsEdit": false,
+        "ParentId": "0PS000000000002AAA"
+      }
+    ],
+    "totalSize": 3,
+    "done": true
+  },
+  "warnings": []
+}

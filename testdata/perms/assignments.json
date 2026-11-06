@@ -1,0 +1,92 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "PermissionSetAssignment"
+        },
+        "PermissionSetId": "0PS000000000001AAA",
+        "PermissionSet": {
+          "attributes": {
+            "type": "PermissionSet"
+          },
+          "Label": "X00e000000000001",
+          "IsOwnedByProfile": true,
+          "Profile": {
+            "attributes": {
+              "type": "Profile"
+            },
+            "Name": "Sales User"
+          },
+          "PermissionsModifyAllData": false,
+          "PermissionsViewAllData": false
+        },
+        "PermissionSetGroupId": null,
+        "PermissionSetGroup": null
+      },
+      {
+        "attributes": {
+          "type": "PermissionSetAssignment"
+        },
+        "PermissionSetId": "0PS000000000002AAA",
+        "PermissionSet": {
+          "attributes": {
+            "type": "PermissionSet"
+          },
+          "Label": "Sales Ops",
+          "IsOwnedByProfile": false,
+          "Profile": null,
+          "PermissionsModifyAllData": false,
+          "PermissionsViewAllData": false
+        },
+        "PermissionSetGroupId": null,
+        "PermissionSetGroup": null
+      },
+      {
+        "attributes": {
+          "type": "PermissionSetAssignment"
+        },
+        "PermissionSetId": "0PS000000000003AAA",
+        "PermissionSet": {
+          "attributes": {
+            "type": "PermissionSet"
+          },
+          "Label": "Data Steward",
+          "IsOwnedByProfile": false,
+          "Profile": null,
+          "PermissionsModifyAllData": true,
+          "PermissionsViewAllData": false
+        },
+        "PermissionSetGroupId": "0PG000000000001AAA",
+        "PermissionSetGroup": {
+          "attributes": {
+            "type": "PermissionSetGroup"
+          },
+          "MasterLabel": "Ops Group"
+        }
+      },
+      {
+        "attributes": {
+          "type": "PermissionSetAssignment"
+        },
+        "PermissionSetId": "0PS000000000004AAA",
+        "PermissionSet": {
+          "attributes": {
+            "type": "PermissionSet"
+          },
+          "Label": "Reports Viewer",
+          "IsOwnedByProfile": false,
+          "Profile": null,
+          "PermissionsModifyAllData": false,
+          "PermissionsViewAllData": true
+        },
+        "PermissionSetGroupId": null,
+        "PermissionSetGroup": null
+      }
+    ],
+    "totalSize": 4,
+    "done": true
+  },
+  "warnings": []
+}

@@ -1,0 +1,23 @@
+Alex Admin  (alex@acme.example)
+Profile: System Administrator
+
+Assignments (4):
+  Profile: Sales User
+  Sales Ops
+  Data Steward  via group Ops Group
+  Reports Viewer
+
+System overrides:
+  Modify All Data: Data Steward  (implies edit/delete/view on every object)
+  View All Data: Reports Viewer
+
+Object permissions (3 objects):
+  Account                         R[Profile: Sales User] C[Sales Ops] E[Sales Ops] D[-] VA[-] MA[-]
+  Case                            R[Sales Ops+Reports Viewer] C[-] E[Sales Ops] D[-] VA[-] MA[-]
+  Lead                            R[-] C[-] E[-] D[-] VA[-] MA[-]
+
+Fields on Account (2):
+  Industry                        R[Profile: Sales User+Sales Ops] E[Sales Ops]
+  Rating                          R[Sales Ops] E[-]
+
+Object and field permissions only. Sharing rules, roles and record ownership are not evaluated.

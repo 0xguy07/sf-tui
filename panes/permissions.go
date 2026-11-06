@@ -147,8 +147,19 @@ func renderPermDetail(msg sf.PermissionsLoadedMsg, flsObject string, fls []sf.Fi
 	}
 	fmt.Fprintln(&b)
 
+	if len(msg.Overrides.ModifyAllData) > 0 || len(msg.Overrides.ViewAllData) > 0 {
+		fmt.Fprintln(&b, permSection.Render("System overrides"))
+		if len(msg.Overrides.ModifyAllData) > 0 {
+			fmt.Fprintln(&b, "  Modify All Data: "+strings.Join(msg.Overrides.ModifyAllData, ", ")+permDim.Render("  (edit/delete/view on every object)"))
+		}
+		if len(msg.Overrides.ViewAllData) > 0 {
+			fmt.Fprintln(&b, "  View All Data: "+strings.Join(msg.Overrides.ViewAllData, ", "))
+		}
+		fmt.Fprintln(&b)
+	}
+
 	fmt.Fprintln(&b, permSection.Render(fmt.Sprintf("Object permissions (%d objects)", len(msg.Objects))))
-	fmt.Fprintln(&b, permDim.Render("       R  C  E  D  V  M   sources"))
+	fmt.Fprintln(&b, permDim.Render("       R  C  E  D  V  M   granted by"))
 	for _, op := range msg.Objects {
 		row := fmt.Sprintf("  %-30s %s %s %s %s %s %s   %s",
 			truncate(op.SObject, 30),
@@ -158,7 +169,7 @@ func renderPermDetail(msg sf.PermissionsLoadedMsg, flsObject string, fls []sf.Fi
 			flag(op.Delete),
 			flag(op.ViewAll),
 			flag(op.ModifyAll),
-			permDim.Render(strings.Join(op.Sources, ", ")),
+			permDim.Render(grantSummary(op.Grants, objectPermOrder, objectPermLetters)),
 		)
 		fmt.Fprintln(&b, row)
 	}
@@ -169,13 +180,13 @@ func renderPermDetail(msg sf.PermissionsLoadedMsg, flsObject string, fls []sf.Fi
 		if len(fls) == 0 {
 			fmt.Fprintln(&b, permDim.Render("  no FieldPermissions records — fields fall back to profile defaults"))
 		} else {
-			fmt.Fprintln(&b, permDim.Render("       R  E   sources"))
+			fmt.Fprintln(&b, permDim.Render("       R  E   granted by"))
 			for _, f := range fls {
 				row := fmt.Sprintf("  %-30s %s %s   %s",
 					truncate(f.Field, 30),
 					flag(f.Read),
 					flag(f.Edit),
-					permDim.Render(strings.Join(f.Sources, ", ")),
+					permDim.Render(grantSummary(f.Grants, fieldPermOrder, fieldPermLetters)),
 				)
 				fmt.Fprintln(&b, row)
 			}
@@ -215,4 +226,43 @@ func (p Permissions) View(listFocus, detailFocus bool) string {
 	left := BorderFor(listFocus).Render(p.List.View())
 	right := BorderFor(detailFocus).Render(p.Viewport.View())
 	return lipgloss.JoinHorizontal(lipgloss.Top, left, right)
+}
+
+var (
+	objectPermOrder   = []string{sf.PermRead, sf.PermCreate, sf.PermEdit, sf.PermDelete, sf.PermViewAll, sf.PermModifyAll}
+	objectPermLetters = map[string]string{sf.PermRead: "R", sf.PermCreate: "C", sf.PermEdit: "E", sf.PermDelete: "D", sf.PermViewAll: "V", sf.PermModifyAll: "M"}
+	fieldPermOrder    = []string{sf.PermRead, sf.PermEdit}
+	fieldPermLetters  = map[string]string{sf.PermRead: "R", sf.PermEdit: "E"}
+)
+
+// grantSummary renders per-permission sources compactly: permission letters
+// that share the same source set are grouped, e.g. "R:Profile: Sales  C,E:Sales Ops".
+// Groups appear in order of first appearance; "" when nothing is granted.
+func grantSummary(grants map[string][]string, order []string, letters map[string]string) string {
+	type group struct {
+		key     string
+		letters []string
+		sources string
+	}
+	var groups []*group
+	byKey := map[string]*group{}
+	for _, perm := range order {
+		srcs := grants[perm]
+		if len(srcs) == 0 {
+			continue
+		}
+		key := strings.Join(srcs, "\x00")
+		g, ok := byKey[key]
+		if !ok {
+			g = &group{key: key, sources: strings.Join(srcs, "+")}
+			byKey[key] = g
+			groups = append(groups, g)
+		}
+		g.letters = append(g.letters, letters[perm])
+	}
+	parts := make([]string, 0, len(groups))
+	for _, g := range groups {
+		parts = append(parts, strings.Join(g.letters, ",")+":"+g.sources)
+	}
+	return strings.Join(parts, "  ")
 }

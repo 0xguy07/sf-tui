@@ -1,0 +1,150 @@
+{
+  "user": {
+    "id": "005000000000001AAA",
+    "name": "Alex Admin",
+    "username": "alex@acme.example",
+    "isActive": true,
+    "profile": "System Administrator"
+  },
+  "assignments": [
+    {
+      "permSetId": "0PS000000000001AAA",
+      "label": "X00e000000000001",
+      "isProfile": true,
+      "profileName": "Sales User"
+    },
+    {
+      "permSetId": "0PS000000000002AAA",
+      "label": "Sales Ops",
+      "isProfile": false
+    },
+    {
+      "permSetId": "0PS000000000003AAA",
+      "label": "Data Steward",
+      "isProfile": false,
+      "groupLabel": "Ops Group"
+    },
+    {
+      "permSetId": "0PS000000000004AAA",
+      "label": "Reports Viewer",
+      "isProfile": false
+    }
+  ],
+  "overrides": {
+    "modifyAllData": [
+      "Data Steward"
+    ],
+    "viewAllData": [
+      "Reports Viewer"
+    ]
+  },
+  "objects": [
+    {
+      "sobject": "Account",
+      "read": true,
+      "create": true,
+      "edit": true,
+      "delete": false,
+      "viewAll": false,
+      "modifyAll": false,
+      "sources": [
+        "Profile: Sales User",
+        "Sales Ops"
+      ],
+      "grants": {
+        "create": [
+          "Sales Ops"
+        ],
+        "delete": [],
+        "edit": [
+          "Sales Ops"
+        ],
+        "modifyAll": [],
+        "read": [
+          "Profile: Sales User"
+        ],
+        "viewAll": []
+      }
+    },
+    {
+      "sobject": "Case",
+      "read": true,
+      "create": false,
+      "edit": true,
+      "delete": false,
+      "viewAll": false,
+      "modifyAll": false,
+      "sources": [
+        "Sales Ops",
+        "Reports Viewer"
+      ],
+      "grants": {
+        "create": [],
+        "delete": [],
+        "edit": [
+          "Sales Ops"
+        ],
+        "modifyAll": [],
+        "read": [
+          "Sales Ops",
+          "Reports Viewer"
+        ],
+        "viewAll": []
+      }
+    },
+    {
+      "sobject": "Lead",
+      "read": false,
+      "create": false,
+      "edit": false,
+      "delete": false,
+      "viewAll": false,
+      "modifyAll": false,
+      "sources": [],
+      "grants": {
+        "create": [],
+        "delete": [],
+        "edit": [],
+        "modifyAll": [],
+        "read": [],
+        "viewAll": []
+      }
+    }
+  ],
+  "object": "Account",
+  "fields": [
+    {
+      "field": "Industry",
+      "read": true,
+      "edit": true,
+      "sources": [
+        "Profile: Sales User",
+        "Sales Ops"
+      ],
+      "grants": {
+        "edit": [
+          "Sales Ops"
+        ],
+        "read": [
+          "Profile: Sales User",
+          "Sales Ops"
+        ]
+      }
+    },
+    {
+      "field": "Rating",
+      "read": true,
+      "edit": false,
+      "sources": [
+        "Sales Ops"
+      ],
+      "grants": {
+        "edit": [],
+        "read": [
+          "Sales Ops"
+        ]
+      }
+    }
+  ],
+  "errors": []
+}
