@@ -101,19 +101,24 @@ func HumanInt(n int) string {
 	}
 }
 
+// FetchLimits runs `sf limits api display` for org and parses the result.
+func FetchLimits(org string) ([]Limit, error) {
+	out, err := sfCommand("sf limits api display", "limits", "api", "display",
+		"--target-org", org,
+		"--json",
+	).Output()
+	if err != nil {
+		return nil, sfCommandError("sf limits api display", out, err)
+	}
+	return ParseLimits(out)
+}
+
 func LoadLimits(orgAliasOrUser string) tea.Cmd {
 	return func() tea.Msg {
 		if orgAliasOrUser == "" {
 			return ErrMsg{Err: fmt.Errorf("no org selected")}
 		}
-		out, err := sfCommand("sf limits api display", "limits", "api", "display",
-			"--target-org", orgAliasOrUser,
-			"--json",
-		).Output()
-		if err != nil {
-			return ErrMsg{Err: sfCommandError("sf limits api display", out, err)}
-		}
-		limits, err := ParseLimits(out)
+		limits, err := FetchLimits(orgAliasOrUser)
 		if err != nil {
 			return ErrMsg{Err: err}
 		}

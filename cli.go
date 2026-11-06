@@ -17,6 +17,7 @@ type cliDeps struct {
 	resolveUser func(org, ident string) (sf.UserBrief, error)
 	perms       func(org string, user sf.UserBrief, object string) (sf.PermissionsReport, error)
 	compare     func(aOrg, bOrg string, opts sf.CompareOptions) (sf.SchemaDiff, error)
+	limits      func(org string) ([]sf.Limit, error)
 }
 
 // prodDeps wires the real Salesforce access used by `sftui why`.
@@ -35,6 +36,7 @@ func prodDeps() cliDeps {
 		compare: func(aOrg, bOrg string, opts sf.CompareOptions) (sf.SchemaDiff, error) {
 			return sf.BuildSchemaDiff(sf.DefaultSchemaLoader(), aOrg, bOrg, opts)
 		},
+		limits: sf.FetchLimits,
 	}
 }
 
@@ -85,6 +87,7 @@ func usage() string {
   sftui why <recordId> [flags]  explain why a record changed (read-only)
   sftui perms <user> [flags]    what a user can do, and which perm set grants it (read-only)
   sftui compare <orgA> <orgB>   schema diff between two orgs (read-only)
+  sftui limits [flags]          API limits, with an optional threshold (read-only)
   sftui --version               print the version
 
 why flags:
@@ -106,6 +109,12 @@ compare flags (compare takes no --org: both orgs are positional):
   --custom-only                 with --fields: custom objects only
   --exit-code                   exit 3 when differences are found
   --refresh                     bypass the 24-hour schema caches
+  --timeout <duration>          deadline per sf call (default 10m, or SFTUI_TIMEOUT)
+
+limits flags:
+  --org, -o <alias|username>    org to query (default: the sf default target org)
+  --format <text|json>          output format (default: text)
+  --warn <percent>              exit 3 when any limit is at or above this usage (1-100)
   --timeout <duration>          deadline per sf call (default 10m, or SFTUI_TIMEOUT)
 
 <user> may be an Id (005...), a username, or an exact display name.
@@ -164,6 +173,8 @@ func runCLI(args []string, stdout, stderr io.Writer, d cliDeps) (handled bool, c
 		return true, runPerms(args[1:], stdout, stderr, d)
 	case "compare":
 		return true, runCompare(args[1:], stdout, stderr, d)
+	case "limits":
+		return true, runLimits(args[1:], stdout, stderr, d)
 	default:
 		fmt.Fprintf(stderr, "unknown command %q\n\n%s", args[0], usage())
 		return true, 2
