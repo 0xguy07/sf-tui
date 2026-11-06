@@ -74,7 +74,22 @@ sftui why 001XXXXXXXXXXXXXXX --org prod --format json \
   | jq -r '.saves[] | select(any(.changes[]; .field=="Status")) | "\(.at) \(.user.name)"'
 ```
 
-The JSON shape is the TUI's trace structure; see the [Scripting and JSON](https://github.com/0xguy07/sf-tui/wiki/Scripting-and-JSON) wiki page for the field reference. It is unstable until 1.0.
+What a user can do, and which permission set or profile grants each permission:
+
+```
+sftui perms <user> [--org <alias|username>] [--object <SObject>] [--format text|json]
+```
+
+`<user>` is an Id (`005…`), a username, or an exact display name (ambiguous names exit 2 and list the candidates). Every object shows Read/Create/Edit/Delete/View All/Modify All with the source of each, plus a **System overrides** section when any assigned set grants Modify All Data or View All Data. `--object` adds field-level Read/Edit with sources. Object and field permissions only; sharing is not evaluated.
+
+Objects the user can delete:
+
+```
+sftui perms alex@acme.example --org prod --format json \
+  | jq -r '.objects[] | select(.grants.delete | length > 0) | .sobject'
+```
+
+The JSON shapes are the TUI's own structures; see the [Scripting and JSON](https://github.com/0xguy07/sf-tui/wiki/Scripting-and-JSON) wiki page for the field references. They are unstable until 1.0.
 
 ## Tabs
 
@@ -85,7 +100,7 @@ The JSON shape is the TUI's trace structure; see the [Scripting and JSON](https:
 | `alt+3`  | **Logs**         | Live-tail Apex debug logs |
 | `alt+4`  | **Apex**         | Anonymous Apex scratchpad — write code, run with `ctrl+r`, see the debug log inline. Goes through the [write gate](#safety) |
 | `alt+5`  | **Limits**       | API limits with horizontal usage bars, sorted by % used. `ctrl+r` refreshes |
-| `alt+6`  | **Permissions**  | Pick a user, see effective object permissions and which perm sets / profile grant them |
+| `alt+6`  | **Permissions**  | Pick a user, see effective object permissions and which perm set / profile grants each one, plus Modify/View All Data overrides |
 | `alt+7`  | **Tests**        | Apex test runner — multi-select classes with `space`, run with `ctrl+r`, see pass/fail + coverage with uncovered line numbers |
 | `alt+8`  | **Meta**         | Deploy preview for the current project — see what would deploy/delete/conflict, dry-run with `ctrl+r`, real deploy with `ctrl+d` (asks first; goes through the [write gate](#safety)) |
 | `alt+9`  | **Compare**      | Schema diff between two orgs — pick org A, `ctrl+r`, pick org B, `ctrl+r` again. `enter` on a row → field-level diff. `c` to clear |
@@ -167,6 +182,8 @@ The JSON shape is the TUI's trace structure; see the [Scripting and JSON](https:
 - [x] Production safety gate: prod orgs locked by default; session or config unlock
 - [x] Why tab: record field-history timeline + automation in order of execution, with possible writers per field
 - [x] `sftui why <recordId>`: the Why trace as text or JSON, for scripts and CI
+- [x] `sftui perms <user>`: effective permissions with per-permission sources, as text or JSON
+- [x] Perms tab shows which perm set grants each permission, and Modify/View All Data overrides
 
 ## Safety
 
