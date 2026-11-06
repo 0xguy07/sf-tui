@@ -33,12 +33,12 @@ func versionString() string {
 	return s
 }
 
-// wantsVersion reports whether the arguments ask for the version.
+// wantsVersion reports whether the first argument asks for the version.
+// Only the first argument counts, so `sftui why -v` is not a version request.
 func wantsVersion(args []string) bool {
-	for _, a := range args {
-		if a == "--version" || a == "-v" || a == "version" {
-			return true
-		}
+	if len(args) == 0 {
+		return false
 	}
-	return false
+	a := args[0]
+	return a == "--version" || a == "-v" || a == "version"
 }
