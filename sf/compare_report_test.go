@@ -255,3 +255,40 @@ func TestBuildSchemaDiff_SObjectsFail(t *testing.T) {
 		t.Errorf("err = %v", err)
 	}
 }
+
+func TestBuildSchemaDiff_FieldLevelFlag(t *testing.T) {
+	d, _ := BuildSchemaDiff(newFake(t), "aorg", "borg", CompareOptions{})
+	if d.FieldLevel {
+		t.Error("objects-only run must not set FieldLevel")
+	}
+	f := newFake(t)
+	f.sobjects["borg"] = "sobjects_disjoint.json"
+	d, _ = BuildSchemaDiff(f, "aorg", "borg", CompareOptions{Fields: true})
+	if !d.FieldLevel || d.Summary.ObjectsCompared != 0 {
+		t.Errorf("FieldLevel=%v compared=%d", d.FieldLevel, d.Summary.ObjectsCompared)
+	}
+}
+
+func TestBuildSchemaDiff_ObjectCaseInsensitive(t *testing.T) {
+	f := newFake(t)
+	d, err := BuildSchemaDiff(f, "aorg", "borg", CompareOptions{Object: "widget__C"})
+	if err != nil || len(d.Fields) != 1 || d.Fields[0].SObject != "Widget__c" || d.Object != "Widget__c" {
+		t.Errorf("err=%v object=%q fields=%+v", err, d.Object, d.Fields)
+	}
+	for _, c := range f.describeCalls() {
+		if !strings.HasSuffix(c, "/Widget__c") {
+			t.Errorf("describe used non-canonical name: %s", c)
+		}
+	}
+}
+
+func TestBuildSchemaDiff_ObjectUnknownIsError(t *testing.T) {
+	f := newFake(t)
+	_, err := BuildSchemaDiff(f, "aorg", "borg", CompareOptions{Object: "Widgt__c"})
+	if err == nil || !strings.Contains(err.Error(), "not present in either org") {
+		t.Errorf("err = %v", err)
+	}
+	if len(f.describeCalls()) != 0 {
+		t.Errorf("no describes expected for an unknown object, got %v", f.describeCalls())
+	}
+}

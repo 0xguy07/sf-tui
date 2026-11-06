@@ -113,3 +113,15 @@ func TestSameRefsAndPicklist(t *testing.T) {
 		t.Error("different values should differ")
 	}
 }
+
+func TestSamePicklist_InactiveValueCountsAsDifference(t *testing.T) {
+	pv := func(v string, active bool) PicklistValue { return PicklistValue{Value: v, Active: active} }
+	a := []PicklistValue{pv("New", true), pv("Old", false)}
+	b := []PicklistValue{pv("New", true)}
+	if samePicklist(a, b) {
+		t.Error("an extra inactive value must count as a difference (TUI behaviour before the move)")
+	}
+	if sameRefs([]string{"a"}, []string{"a", "b"}) {
+		t.Error("sameRefs length mismatch")
+	}
+}

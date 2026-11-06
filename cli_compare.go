@@ -70,6 +70,14 @@ func runCompare(args []string, stdout, stderr io.Writer, d cliDeps) int {
 		fmt.Fprintf(errw, "%v\n", err)
 		return 1
 	}
+	if object != "" && len(diff.Fields) == 0 {
+		// The one requested answer is missing: that is a failure, not drift.
+		fmt.Fprintf(errw, "could not compare %s:\n", object)
+		for _, e := range diff.Errors {
+			fmt.Fprintf(errw, "  %s: %s\n", e.Section, e.Message)
+		}
+		return 1
+	}
 	if code := writeReport(stdout, stderr, errw, format, diff, func() string { return renderSchemaDiffText(diff) }, diff.Errors); code != 0 {
 		return code
 	}

@@ -95,7 +95,7 @@ Did two orgs drift?
 sftui compare <orgA> <orgB> [--object <SObject> | --fields [--custom-only]] [--exit-code] [--refresh] [--format text|json]
 ```
 
-By default this is the object-level diff (one `sf sobject list` per org, fast). `--object X` adds the field-level diff for one object; `--fields` does it for every object present on both sides through a 4-way describe pool, and `--custom-only` keeps that to custom objects, which is where drift lives. `--exit-code` exits **3** when anything differs, so it works as a CI gate:
+By default this is the object-level diff (one `sf sobject list` per org, fast). `--object X` adds the field-level diff for one object; `--fields` does it for every object present on both sides through a 4-way describe pool, and `--custom-only` limits the field-level pass to custom objects. `--exit-code` exits **3** when anything differs at either level (one-sided objects of any kind, or a field change in a compared object), so it works as a CI gate:
 
 ```yaml
 - run: sftui compare uat prod --fields --custom-only --exit-code

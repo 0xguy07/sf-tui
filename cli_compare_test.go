@@ -164,3 +164,21 @@ func TestRunCLI_CompareDispatch(t *testing.T) {
 		t.Errorf("handled=%v code=%d stderr=%q", handled, code, errb.String())
 	}
 }
+
+func TestCompare_ObjectNothingComparedExit1(t *testing.T) {
+	diff := fixtureDiff(t)
+	diff.FieldLevel, diff.Object, diff.Fields = true, "Widget__c", []sf.ObjectFieldDiff{}
+	diff.Errors = []sf.SectionError{{Section: "describe-a:Widget__c", Message: "boom"}, {Section: "describe-b:Widget__c", Message: "boom"}}
+	d, _ := compareDeps(diff, nil)
+	code, so, se := runCompareCapture(t, d, "a", "b", "--object", "Widget__c", "--exit-code")
+	if code != 1 || so != "" || !strings.Contains(se, "could not compare Widget__c") {
+		t.Errorf("exit=%d stdout=%q stderr=%q", code, so, se)
+	}
+}
+
+func TestSplitPositionalN_DoubleDash(t *testing.T) {
+	pos, rest := splitPositionalN([]string{"--fields", "--", "a", "b"}, 2)
+	if !reflect.DeepEqual(pos, []string{"a", "b"}) || !reflect.DeepEqual(rest, []string{"--fields"}) {
+		t.Errorf("got %v %v", pos, rest)
+	}
+}

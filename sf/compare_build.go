@@ -61,13 +61,15 @@ type Summary struct {
 
 // SchemaDiff is the full result of comparing two orgs.
 type SchemaDiff struct {
-	A         Side              `json:"a"`
-	B         Side              `json:"b"`
-	Objects   []ObjectState     `json:"objects"`
-	Fields    []ObjectFieldDiff `json:"fields"`
-	Summary   Summary           `json:"summary"`
-	Different bool              `json:"different"`
-	Errors    []SectionError    `json:"errors"`
+	A          Side              `json:"a"`
+	B          Side              `json:"b"`
+	Objects    []ObjectState     `json:"objects"`
+	FieldLevel bool              `json:"fieldLevel"`       // a field-level compare was requested (--object or --fields)
+	Object     string            `json:"object,omitempty"` // the canonical --object name, "" otherwise
+	Fields     []ObjectFieldDiff `json:"fields"`
+	Summary    Summary           `json:"summary"`
+	Different  bool              `json:"different"`
+	Errors     []SectionError    `json:"errors"`
 }
 
 // DiffSObjects classifies the union of two sobject lists, sorted by name.
@@ -251,6 +253,9 @@ func sameRefs(a, b []string) bool {
 }
 
 func samePicklist(a, b []PicklistValue) bool {
+	if len(a) != len(b) {
+		return false
+	}
 	mk := func(p []PicklistValue) []string {
 		out := make([]string, 0, len(p))
 		for _, v := range p {
@@ -327,8 +332,15 @@ func BuildSchemaDiff(l SchemaLoader, aOrg, bOrg string, opts CompareOptions) (Sc
 	var targets []string
 	switch {
 	case opts.Object != "":
-		targets = []string{opts.Object}
+		d.FieldLevel = true
+		name, ok := canonicalObject(d.Objects, opts.Object)
+		if !ok {
+			return d, fmt.Errorf("%s: not present in either org", opts.Object)
+		}
+		d.Object = name
+		targets = []string{name}
 	case opts.Fields:
+		d.FieldLevel = true
 		for _, o := range d.Objects {
 			if o.State != StateBoth {
 				continue
@@ -417,4 +429,15 @@ func describeBoth(l SchemaLoader, aOrg, bOrg, name string, st ObjectState, force
 	}
 	fd := DiffFields(name, a, b)
 	return &fd, errs
+}
+
+// canonicalObject finds name among the listed objects, case-insensitively,
+// and returns the listed spelling.
+func canonicalObject(objects []ObjectState, name string) (string, bool) {
+	for _, o := range objects {
+		if strings.EqualFold(o.Name, name) {
+			return o.Name, true
+		}
+	}
+	return "", false
 }
