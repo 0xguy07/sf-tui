@@ -82,6 +82,14 @@ sftui perms <user> [--org <alias|username>] [--object <SObject>] [--format text|
 
 `<user>` is an Id (`005…`), a username, or an exact display name (ambiguous names exit 2 and list the candidates). Every object shows Read/Create/Edit/Delete/View All/Modify All with the source of each, plus a **System overrides** section when any assigned set grants Modify All Data or View All Data. `--object` adds field-level Read/Edit with sources. Object and field permissions only; sharing is not evaluated.
 
+Two users side by side — what differs, and which permission set is responsible:
+
+```
+sftui perms alex@acme.example --diff bob@acme.example --org prod --object Account
+```
+
+One row per permission that differs, with each side's sources; rows marked *same grant, different source* show equal access that comes from different places.
+
 Objects the user can delete:
 
 ```
@@ -211,6 +219,7 @@ The JSON shapes are the TUI's own structures; see the [Scripting and JSON](https
 - [x] `sftui compare <orgA> <orgB>`: object- and field-level schema diff as text or JSON, exit 3 on drift
 - [x] Compare tab shows which sides came from the cache
 - [x] `sftui limits [--warn N]`: API limits as text or JSON, exit 3 at or above a threshold
+- [x] `sftui perms A --diff B`: per-permission, per-source diff of two users
 
 ## Safety
 

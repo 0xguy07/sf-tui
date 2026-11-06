@@ -98,7 +98,7 @@ func splitPositional(args []string) (id string, rest []string) {
 // it is positional. Positionals beyond n are handed back after a "--" so
 // flag.Parse leaves them in fs.Args() for the caller to reject.
 func splitPositionalN(args []string, n int) (positionals []string, rest []string) {
-	takesValue := map[string]bool{"--org": true, "-org": true, "--o": true, "-o": true, "--format": true, "-format": true, "--object": true, "-object": true, "--timeout": true, "-timeout": true, "--warn": true, "-warn": true}
+	takesValue := map[string]bool{"--org": true, "-org": true, "--o": true, "-o": true, "--format": true, "-format": true, "--object": true, "-object": true, "--timeout": true, "-timeout": true, "--warn": true, "-warn": true, "--diff": true, "-diff": true}
 	var extra []string
 	take := func(a string) {
 		if len(positionals) < n {

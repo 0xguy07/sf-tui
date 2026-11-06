@@ -1,0 +1,23 @@
+Permissions diff
+  A: Alex Admin  (alex@acme.example)
+  B: Bob Builder  (bob@acme.example)
+
+Assignments only A:
+  Sales Ops
+  Data Steward
+
+System overrides:
+  Modify All Data   A[Data Steward]  B[-]
+
+Object permissions (4 differences):
+  Account                         create     A[Sales Ops]  B[-]
+  Account                         edit       A[Sales Ops]  B[-]
+  Case                            read       A[Sales Ops+Reports Viewer]  B[-]
+  Case                            edit       A[Sales Ops]  B[-]
+
+Fields on Account (3 differences):
+  Industry                        read       A[Profile: Sales User+Sales Ops]  B[Profile: Sales User]  (same grant, different source)
+  Industry                        edit       A[Sales Ops]  B[-]
+  Rating                          read       A[Sales Ops]  B[-]
+
+Object and field permissions only. Sharing rules, roles and record ownership are not evaluated.
