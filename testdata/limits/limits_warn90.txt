@@ -1,9 +1,9 @@
 API limits for prod  (5 limits)  warn at 90%
 
-  DailyApiRequests                          100 / 100   100.0%  ⚠
-  DailyBulkApiBatches                       9250 / 10.0K   92.5%  ⚠
-  DailyStreamingApiEvents                   100.0K / 1.0M   10.0%
-  DailyAsyncApexExecutions                  0 / 250.0K   0.0%
-  PackageVersionCreates                     0 / 0   0.0%
+  DailyApiRequests              100 / 100   100.0%  ⚠
+  DailyBulkApiBatches        9250 / 10.0K    92.5%  ⚠
+  DailyStreamingApiEvents   100.0K / 1.0M    10.0%
+  DailyAsyncApexExecutions     0 / 250.0K     0.0%
+  PackageVersionCreates             0 / 0     0.0%
 
 2 of 5 limits at or above 90%
