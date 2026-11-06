@@ -15,10 +15,10 @@ const (
 )
 
 type SOQLContext struct {
-	Kind       CompletionKind
-	Prefix     string   // current partial token (may be empty)
-	PrefixStart int     // byte offset in the full text where the prefix begins
-	SObject    string   // inferred FROM object, if known
+	Kind        CompletionKind
+	Prefix      string // current partial token (may be empty)
+	PrefixStart int    // byte offset in the full text where the prefix begins
+	SObject     string // inferred FROM object, if known
 	// Reference chain: e.g. "Account.Owner." → []string{"Account", "Owner"}; current prefix starts fresh after the last dot.
 	RefChain []string
 }

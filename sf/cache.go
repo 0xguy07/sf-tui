@@ -9,9 +9,9 @@ import (
 // Cache holds per-org SObject metadata for autocomplete.
 type Cache struct {
 	mu        sync.RWMutex
-	sobjects  map[string][]SObjectSummary // org -> list
+	sobjects  map[string][]SObjectSummary    // org -> list
 	describes map[string]map[string]Describe // org -> sobject name (lowercased) -> describe
-	loading   map[string]bool               // org+sobject key -> in-flight
+	loading   map[string]bool                // org+sobject key -> in-flight
 }
 
 func NewCache() *Cache {

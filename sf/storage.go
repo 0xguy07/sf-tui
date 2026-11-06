@@ -10,11 +10,11 @@ import (
 )
 
 type SavedQuery struct {
-	Name    string    `json:"name,omitempty"`
-	Org     string    `json:"org"`
-	SOQL    string    `json:"soql"`
-	RanAt   time.Time `json:"ranAt,omitempty"`
-	Saved   bool      `json:"saved"`
+	Name  string    `json:"name,omitempty"`
+	Org   string    `json:"org"`
+	SOQL  string    `json:"soql"`
+	RanAt time.Time `json:"ranAt,omitempty"`
+	Saved bool      `json:"saved"`
 }
 
 type Store struct {

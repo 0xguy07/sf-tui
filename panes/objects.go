@@ -163,8 +163,8 @@ func (o *Objects) renderDetail() {
 	o.Detail.GotoTop()
 }
 
-func (o *Objects) FocusList()   { o.listFocus = true }
-func (o *Objects) FocusDetail() { o.listFocus = false }
+func (o *Objects) FocusList()       { o.listFocus = true }
+func (o *Objects) FocusDetail()     { o.listFocus = false }
 func (o Objects) ListFocused() bool { return o.listFocus }
 
 func (o Objects) Update(msg tea.Msg) (Objects, tea.Cmd) {
