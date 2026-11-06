@@ -91,11 +91,13 @@ why flags:
   --org, -o <alias|username>    org to query (default: the sf default target org)
   --format <text|json>          output format (default: text)
   --refresh                     bypass the 24-hour automation cache
+  --timeout <duration>          deadline per sf call, e.g. 90s or 2m (default 10m, or SFTUI_TIMEOUT)
 
 perms flags:
   --org, -o <alias|username>    org to query (default: the sf default target org)
   --format <text|json>          output format (default: text)
   --object <SObject>            also show field-level permissions on this object
+  --timeout <duration>          deadline per sf call (default 10m, or SFTUI_TIMEOUT)
 
 compare flags (compare takes no --org: both orgs are positional):
   --format <text|json>          output format (default: text)
@@ -104,9 +106,37 @@ compare flags (compare takes no --org: both orgs are positional):
   --custom-only                 with --fields: custom objects only
   --exit-code                   exit 3 when differences are found
   --refresh                     bypass the 24-hour schema caches
+  --timeout <duration>          deadline per sf call (default 10m, or SFTUI_TIMEOUT)
 
 <user> may be an Id (005...), a username, or an exact display name.
 `
+}
+
+// applyTimeoutEnv applies SFTUI_TIMEOUT when set and valid. It returns a
+// warning to show the user when the value is invalid (the default stays).
+func applyTimeoutEnv() string {
+	d, ok, err := sf.TimeoutFromEnv()
+	switch {
+	case err != nil:
+		return fmt.Sprintf("%v; using the default %s", err, sf.DefaultTimeout)
+	case ok:
+		sf.SetTimeout(d)
+	}
+	return ""
+}
+
+// applyTimeoutFlag applies a --timeout value, if given. Returns 2 on a bad value.
+func applyTimeoutFlag(v string, errw io.Writer) int {
+	if v == "" {
+		return 0
+	}
+	d, err := sf.ParseTimeout(v)
+	if err != nil {
+		fmt.Fprintf(errw, "--timeout %q: %v\n", v, err)
+		return 2
+	}
+	sf.SetTimeout(d)
+	return 0
 }
 
 // runCLI handles non-interactive invocations. It reports handled=false
@@ -123,6 +153,11 @@ func runCLI(args []string, stdout, stderr io.Writer, d cliDeps) (handled bool, c
 	case "help", "--help", "-h":
 		fmt.Fprint(stdout, usage())
 		return true, 0
+	}
+	if w := applyTimeoutEnv(); w != "" {
+		fmt.Fprintln(stderr, "warning: "+w)
+	}
+	switch args[0] {
 	case "why":
 		return true, runWhy(args[1:], stdout, stderr, d)
 	case "perms":

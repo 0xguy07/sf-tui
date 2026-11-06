@@ -103,6 +103,8 @@ By default this is the object-level diff (one `sf sobject list` per org, fast). 
 
 `--refresh` bypasses the 24-hour schema caches; text output marks a side as `(cached)` when it came from disk. Objects and fields only; validation rules, flows and permission sets are not compared.
 
+Every `sf` call runs under a deadline, 10 minutes by default, so a hung `sf` cannot hang a CI job or the TUI forever. Set `--timeout 90s` on any command, or `SFTUI_TIMEOUT=90s` in the environment (the TUI reads it too); a timed-out call is a runtime failure (exit 1) that names the command and the deadline.
+
 The JSON shapes are the TUI's own structures; see the [Scripting and JSON](https://github.com/0xguy07/sf-tui/wiki/Scripting-and-JSON) wiki page for the field references. They are unstable until 1.0.
 
 ## Tabs

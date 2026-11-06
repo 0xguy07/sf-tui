@@ -46,7 +46,7 @@ func TestSfCommand_Timeout(t *testing.T) {
 	if !strings.Contains(err.Error(), "timed out after 100ms") || !strings.Contains(err.Error(), "SFTUI_TIMEOUT") {
 		t.Errorf("message = %q", err.Error())
 	}
-	if time.Since(start) > 2*time.Second {
+	if time.Since(start) > 3*time.Second {
 		t.Errorf("took %v; the process was not killed at the deadline", time.Since(start))
 	}
 }

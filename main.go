@@ -143,9 +143,12 @@ func initialModel() model {
 
 	cfg, cfgErr := sf.LoadGateConfig()
 	gates := sf.NewGate(cfg, cfgErr)
-	startErr := ""
+	startErr := startupWarning
 	if cfgErr != nil {
-		startErr = "config: " + cfgErr.Error() + " — all orgs locked until it's fixed"
+		if startErr != "" {
+			startErr += " · "
+		}
+		startErr += "config: " + cfgErr.Error() + " — all orgs locked until it's fixed"
 	}
 
 	store, _ := sf.LoadStore()
@@ -2282,10 +2285,14 @@ func (m *model) finishWhy() {
 	}
 }
 
+// startupWarning is shown in the TUI's status line when set before initialModel runs.
+var startupWarning string
+
 func main() {
 	if handled, code := runCLI(os.Args[1:], os.Stdout, os.Stderr, prodDeps()); handled {
 		os.Exit(code)
 	}
+	startupWarning = applyTimeoutEnv()
 	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

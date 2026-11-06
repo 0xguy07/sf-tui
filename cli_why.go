@@ -18,12 +18,13 @@ func runWhy(args []string, stdout, stderr io.Writer, d cliDeps) int {
 	fs := flag.NewFlagSet("why", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.Usage = func() {} // printed by hand below so help goes to stdout and errors to stderr
-	var org, format string
+	var org, format, timeout string
 	var refresh bool
 	fs.StringVar(&org, "org", "", "org alias or username")
 	fs.StringVar(&org, "o", "", "org alias or username (shorthand)")
 	fs.StringVar(&format, "format", "text", "text or json")
 	fs.BoolVar(&refresh, "refresh", false, "bypass the automation cache")
+	fs.StringVar(&timeout, "timeout", "", "deadline per sf call")
 	if err := fs.Parse(rest); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			fmt.Fprint(stdout, usage())
@@ -52,6 +53,9 @@ func runWhy(args []string, stdout, stderr io.Writer, d cliDeps) int {
 		return 2
 	}
 
+	if code := applyTimeoutFlag(timeout, prefixWriter{stderr, "why: "}); code != 0 {
+		return code
+	}
 	org, code := resolveOrg(org, d, prefixWriter{stderr, "why: "})
 	if code != 0 {
 		return code
@@ -94,7 +98,7 @@ func splitPositional(args []string) (id string, rest []string) {
 // it is positional. Positionals beyond n are handed back after a "--" so
 // flag.Parse leaves them in fs.Args() for the caller to reject.
 func splitPositionalN(args []string, n int) (positionals []string, rest []string) {
-	takesValue := map[string]bool{"--org": true, "-org": true, "--o": true, "-o": true, "--format": true, "-format": true, "--object": true, "-object": true}
+	takesValue := map[string]bool{"--org": true, "-org": true, "--o": true, "-o": true, "--format": true, "-format": true, "--object": true, "-object": true, "--timeout": true, "-timeout": true}
 	var extra []string
 	take := func(a string) {
 		if len(positionals) < n {
