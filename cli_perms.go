@@ -18,8 +18,9 @@ func runPerms(args []string, stdout, stderr io.Writer, d cliDeps) int {
 	fs := flag.NewFlagSet("perms", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.Usage = func() {}
-	var org, object, format, timeout string
+	var org, object, format, timeout, diffIdent string
 	fs.StringVar(&timeout, "timeout", "", "deadline per sf call")
+	fs.StringVar(&diffIdent, "diff", "", "compare against this user")
 	fs.StringVar(&org, "org", "", "org alias or username")
 	fs.StringVar(&org, "o", "", "org alias or username (shorthand)")
 	fs.StringVar(&object, "object", "", "sobject for field-level permissions")
@@ -66,13 +67,36 @@ func runPerms(args []string, stdout, stderr io.Writer, d cliDeps) int {
 		return 1
 	}
 
-	r, err := d.perms(org, user, strings.TrimSpace(object))
+	object = strings.TrimSpace(object)
+	r, err := d.perms(org, user, object)
 	if err != nil {
 		fmt.Fprintf(errw, "%v\n", err)
 		return 1
 	}
 	if r.Fields == nil {
 		r.Fields = []sf.FieldPerm{} // never null in JSON
+	}
+	if diffIdent = strings.TrimSpace(diffIdent); diffIdent != "" {
+		other, err := d.resolveUser(org, diffIdent)
+		if err != nil {
+			fmt.Fprintf(errw, "%v\n", err)
+			var amb *sf.ErrAmbiguousUser
+			if errors.Is(err, sf.ErrUserNotFound) || errors.As(err, &amb) {
+				return 2
+			}
+			return 1
+		}
+		if other.ID == user.ID {
+			fmt.Fprintf(errw, "--diff names the same user (%s)\n", user.Username)
+			return 2
+		}
+		rb, err := d.perms(org, other, object)
+		if err != nil {
+			fmt.Fprintf(errw, "%v\n", err)
+			return 1
+		}
+		diff := sf.DiffPermissions(r, rb)
+		return writeReport(stdout, stderr, errw, format, diff, func() string { return renderPermissionsDiffText(diff) }, diff.Errors)
 	}
 	return writeReport(stdout, stderr, errw, format, r, func() string { return renderPermissionsText(r) }, r.Errors)
 }

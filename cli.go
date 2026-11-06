@@ -86,6 +86,7 @@ func usage() string {
   sftui                         start the TUI
   sftui why <recordId> [flags]  explain why a record changed (read-only)
   sftui perms <user> [flags]    what a user can do, and which perm set grants it (read-only)
+  sftui perms <userA> --diff <userB>   what differs between two users, and why
   sftui compare <orgA> <orgB>   schema diff between two orgs (read-only)
   sftui limits [flags]          API limits, with an optional threshold (read-only)
   sftui --version               print the version
@@ -100,6 +101,7 @@ perms flags:
   --org, -o <alias|username>    org to query (default: the sf default target org)
   --format <text|json>          output format (default: text)
   --object <SObject>            also show field-level permissions on this object
+  --diff <user>                 diff against a second user instead of listing one
   --timeout <duration>          deadline per sf call (default 10m, or SFTUI_TIMEOUT)
 
 compare flags (compare takes no --org: both orgs are positional):
