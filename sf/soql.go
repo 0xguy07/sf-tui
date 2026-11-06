@@ -3,6 +3,7 @@ package sf
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 )
@@ -41,6 +42,10 @@ func decodeRecords(out []byte) ([]map[string]any, error) {
 // object to stdout; stderr only carries warnings. So prefer the stdout JSON
 // message, then stderr, then the exit error.
 func sfCommandError(label string, out []byte, err error) error {
+	var te *TimeoutError
+	if errors.As(err, &te) {
+		return te // already labelled
+	}
 	var r struct {
 		Name    string `json:"name"`
 		Message string `json:"message"`
