@@ -59,9 +59,3 @@ func runCLI(args []string, stdout, stderr io.Writer, d cliDeps) (handled bool, c
 		return true, 2
 	}
 }
-
-// runWhy is implemented in cli_why.go.
-func runWhy(args []string, stdout, stderr io.Writer, d cliDeps) int {
-	fmt.Fprintln(stderr, "why: not implemented")
-	return 2
-}
