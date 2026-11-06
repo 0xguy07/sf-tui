@@ -103,6 +103,14 @@ By default this is the object-level diff (one `sf sobject list` per org, fast). 
 
 `--refresh` bypasses the 24-hour schema caches; text output marks a side as `(cached)` when it came from disk. Objects and fields only; validation rules, flows and permission sets are not compared.
 
+Which API limits are close to the ceiling?
+
+```
+sftui limits [--org <alias|username>] [--warn <percent>] [--format text|json]
+```
+
+Every limit with used / max and percent, highest first. `--warn N` exits **3** when any limit is at or above N %, so a cron line can page you: `sftui limits --org prod --warn 80 || notify "Salesforce limits"`.
+
 Every `sf` call runs under a deadline, 10 minutes by default (40 for deploys and test runs, which `sf` itself lets run that long), so a hung `sf` cannot hang a CI job or the TUI forever. Set `--timeout 90s` on any command, or `SFTUI_TIMEOUT=90s` in the environment (the TUI reads it too); a timed-out call is a runtime failure (exit 1) that names the command and the deadline.
 
 The JSON shapes are the TUI's own structures; see the [Scripting and JSON](https://github.com/0xguy07/sf-tui/wiki/Scripting-and-JSON) wiki page for the field references. They are unstable until 1.0.
@@ -202,6 +210,7 @@ The JSON shapes are the TUI's own structures; see the [Scripting and JSON](https
 - [x] Perms tab shows which perm set grants each permission, and Modify/View All Data overrides
 - [x] `sftui compare <orgA> <orgB>`: object- and field-level schema diff as text or JSON, exit 3 on drift
 - [x] Compare tab shows which sides came from the cache
+- [x] `sftui limits [--warn N]`: API limits as text or JSON, exit 3 at or above a threshold
 
 ## Safety
 
