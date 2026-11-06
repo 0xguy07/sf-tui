@@ -67,5 +67,8 @@ func runPerms(args []string, stdout, stderr io.Writer, d cliDeps) int {
 		fmt.Fprintf(errw, "%v\n", err)
 		return 1
 	}
-	return writeReport(stdout, errw, format, r, func() string { return renderPermissionsText(r) }, r.Errors)
+	if r.Fields == nil {
+		r.Fields = []sf.FieldPerm{} // never null in JSON
+	}
+	return writeReport(stdout, stderr, errw, format, r, func() string { return renderPermissionsText(r) }, r.Errors)
 }

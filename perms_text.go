@@ -52,6 +52,9 @@ func renderPermissionsText(r sf.PermissionsReport) string {
 		fmt.Fprintf(&b, "Fields on %s (%d):\n", r.Object, len(r.Fields))
 		if len(r.Fields) == 0 {
 			b.WriteString("  (no FieldPermissions rows; fields follow profile defaults)\n")
+			if !hasObject(r.Objects, r.Object) {
+				fmt.Fprintf(&b, "  (no object permissions on %s either; check the API name)\n", r.Object)
+			}
 		}
 		for _, f := range r.Fields {
 			fmt.Fprintf(&b, "  %-30s  R[%s] E[%s]\n", f.Field, src(f.Grants[sf.PermRead]), src(f.Grants[sf.PermEdit]))
@@ -84,4 +87,13 @@ func src(sources []string) string {
 		return "-"
 	}
 	return strings.Join(sources, "+")
+}
+
+func hasObject(objects []sf.ObjectPerm, name string) bool {
+	for _, o := range objects {
+		if strings.EqualFold(o.SObject, name) {
+			return true
+		}
+	}
+	return false
 }

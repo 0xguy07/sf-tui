@@ -55,11 +55,14 @@ func resolveOrg(explicit string, d cliDeps, stderr io.Writer) (string, int) {
 }
 
 // writeReport renders v as JSON or via text and prints section warnings.
-func writeReport(stdout, stderr io.Writer, format string, v any, text func() string, errs []sf.SectionError) int {
+// Warnings go to stderr unprefixed, as "warning: <section>: <message>", so
+// scripts can match them the same way for every command; errw is the
+// command-prefixed writer used for failures.
+func writeReport(stdout, stderr, errw io.Writer, format string, v any, text func() string, errs []sf.SectionError) int {
 	if format == "json" {
 		b, err := json.MarshalIndent(v, "", "  ")
 		if err != nil {
-			fmt.Fprintf(stderr, "encode: %v\n", err)
+			fmt.Fprintf(errw, "encode: %v\n", err)
 			return 1
 		}
 		stdout.Write(append(b, '\n'))

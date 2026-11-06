@@ -70,3 +70,16 @@ func TestRenderPermissionsText_NoANSI(t *testing.T) {
 		t.Error("output contains ANSI escapes")
 	}
 }
+
+func TestRenderPermissionsText_ObjectNotFoundHint(t *testing.T) {
+	r := fixtureReport(t)
+	r.Object, r.Fields = "Acount", []sf.FieldPerm{}
+	out := renderPermissionsText(r)
+	if !strings.Contains(out, "no object permissions on Acount either; check the API name") {
+		t.Errorf("typo hint missing:\n%s", out)
+	}
+	r.Object = "Account"
+	if strings.Contains(renderPermissionsText(r), "check the API name") {
+		t.Error("hint must not appear when the object has permission rows")
+	}
+}

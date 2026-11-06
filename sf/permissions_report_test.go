@@ -2,6 +2,8 @@ package sf
 
 import (
 	"errors"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 )
@@ -107,8 +109,8 @@ func TestBuildPermissionsReport_Full(t *testing.T) {
 func TestBuildPermissionsReport_NoObject(t *testing.T) {
 	q := &fakeSOQL{t: t, routes: fullRoutes()}
 	r, err := BuildPermissionsReport(q, "o", alexUser(), "")
-	if err != nil || r.Fields != nil || r.Object != "" {
-		t.Errorf("fields=%v object=%q err=%v", r.Fields, r.Object, err)
+	if err != nil || r.Fields == nil || len(r.Fields) != 0 || r.Object != "" {
+		t.Errorf("fields=%#v object=%q err=%v (want empty non-nil fields)", r.Fields, r.Object, err)
 	}
 	for _, s := range q.seen {
 		if strings.Contains(s, "FROM FieldPermissions") {
@@ -159,5 +161,24 @@ func TestBuildPermissionsReport_NoAssignments(t *testing.T) {
 	}
 	if r.Assignments == nil || len(r.Assignments) != 0 || r.Objects == nil || len(r.Objects) != 0 || len(r.Errors) != 0 {
 		t.Errorf("want empty non-nil sections, got %#v", r)
+	}
+}
+
+func TestSFCommandError(t *testing.T) {
+	exit := &exec.ExitError{ProcessState: &os.ProcessState{}}
+	stdoutJSON := []byte(`{"status":1,"name":"INVALID_FIELD","message":"Didn't understand relationship 'PermissionSetGroup' in field path.","exitCode":1}`)
+	got := sfCommandError(stdoutJSON, exit)
+	if got == nil || !strings.Contains(got.Error(), "INVALID_FIELD") || !strings.Contains(got.Error(), "PermissionSetGroup") {
+		t.Errorf("stdout JSON error should be surfaced with its name, got %v", got)
+	}
+	withStderr := &exec.ExitError{ProcessState: &os.ProcessState{}, Stderr: []byte("Warning: a newer version is available\n")}
+	if got := sfCommandError(stdoutJSON, withStderr); !strings.Contains(got.Error(), "INVALID_FIELD") {
+		t.Errorf("stdout JSON must win over stderr warnings, got %v", got)
+	}
+	if got := sfCommandError(nil, withStderr); !strings.Contains(got.Error(), "newer version") {
+		t.Errorf("stderr used when stdout has no JSON message, got %v", got)
+	}
+	if got := sfCommandError(nil, errors.New("exec: \"sf\": executable file not found")); !strings.Contains(got.Error(), "executable file not found") {
+		t.Errorf("plain error wrapped, got %v", got)
 	}
 }

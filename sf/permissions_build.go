@@ -215,6 +215,7 @@ func BuildPermissionsReport(q SOQLRunner, org string, user UserBrief, object str
 		Overrides:   Overrides{ModifyAllData: []string{}, ViewAllData: []string{}},
 		Objects:     []ObjectPerm{},
 		Object:      object,
+		Fields:      []FieldPerm{},
 		Errors:      []SectionError{},
 	}
 	recs, err := loadAssignments(q, org, user)
@@ -223,9 +224,6 @@ func BuildPermissionsReport(q SOQLRunner, org string, user UserBrief, object str
 	}
 	r.Assignments, r.Overrides = buildAssignments(recs)
 	if len(r.Assignments) == 0 {
-		if object != "" {
-			r.Fields = []FieldPerm{}
-		}
 		return r, nil
 	}
 	labels := labelsOf(r.Assignments)
@@ -242,7 +240,6 @@ func BuildPermissionsReport(q SOQLRunner, org string, user UserBrief, object str
 	}
 	if object != "" {
 		if recs, err := queryRecords(q, org, fmt.Sprintf(fieldPermsSOQL, soqlEscape(object), in)); err != nil {
-			r.Fields = []FieldPerm{}
 			r.Errors = append(r.Errors, SectionError{Section: "fields", Message: err.Error()})
 		} else {
 			r.Fields = buildFieldPerms(recs, labels)

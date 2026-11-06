@@ -229,3 +229,22 @@ func TestWhy_DefaultOrgErrorExit1(t *testing.T) {
 		t.Errorf("exit=%d stdout=%q stderr=%q", code, so, se)
 	}
 }
+
+func hasLine(s, line string) bool {
+	for _, l := range strings.Split(s, "\n") {
+		if l == line {
+			return true
+		}
+	}
+	return false
+}
+
+func TestWhy_WarningLineFormat(t *testing.T) {
+	tr := fixtureTrace(t)
+	tr.Errors = []sf.SectionError{{Section: "automation", Message: "boom"}}
+	d, _ := stubDeps(tr, nil, "")
+	_, _, se := runWhyCapture(t, d, goodID, "--org", "x", "--format", "json")
+	if !hasLine(se, "warning: automation: boom") {
+		t.Errorf("warning line must be exactly 'warning: <section>: <message>', stderr=%q", se)
+	}
+}

@@ -26,7 +26,7 @@ type PermissionsReport struct {
 	Overrides   Overrides           `json:"overrides"`
 	Objects     []ObjectPerm        `json:"objects"`
 	Object      string              `json:"object,omitempty"` // the --object value, "" otherwise
-	Fields      []FieldPerm         `json:"fields,omitempty"` // only when Object != ""
+	Fields      []FieldPerm         `json:"fields"`           // populated only when Object != ""; never null
 	Errors      []SectionError      `json:"errors"`
 }
 
@@ -177,10 +177,7 @@ func runSOQLRaw(orgAliasOrUser, soql string, tooling bool) ([]byte, error) {
 	cmd := exec.Command("sf", args...)
 	out, err := cmd.Output()
 	if err != nil {
-		if ee, ok := err.(*exec.ExitError); ok && len(ee.Stderr) > 0 {
-			return nil, fmt.Errorf("%s", string(ee.Stderr))
-		}
-		return nil, fmt.Errorf("sf data query: %w", err)
+		return nil, sfCommandError(out, err)
 	}
 	return out, nil
 }

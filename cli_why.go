@@ -63,7 +63,7 @@ func runWhy(args []string, stdout, stderr io.Writer, d cliDeps) int {
 		return 1
 	}
 
-	return writeReport(stdout, prefixWriter{stderr, "why: "}, format, tr, func() string { return renderTraceText(tr) }, tr.Errors)
+	return writeReport(stdout, stderr, prefixWriter{stderr, "why: "}, format, tr, func() string { return renderTraceText(tr) }, tr.Errors)
 }
 
 // prefixWriter prefixes each write with a command name, for stderr lines.

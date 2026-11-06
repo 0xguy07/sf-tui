@@ -158,3 +158,36 @@ func TestRunCLI_PermsDispatch(t *testing.T) {
 		t.Errorf("handled=%v code=%d stderr=%q", handled, code, errb.String())
 	}
 }
+
+func TestPerms_WarningLineFormat(t *testing.T) {
+	r := fixtureReport(t)
+	r.Errors = []sf.SectionError{{Section: "objects", Message: "boom"}}
+	d, _ := permsDeps(t, r, nil, nil)
+	_, _, se := runPermsCapture(t, d, "alex@acme.example", "--org", "x")
+	if !hasLine(se, "warning: objects: boom") {
+		t.Errorf("stderr=%q", se)
+	}
+}
+
+func TestPerms_JSONFieldsAlwaysArray(t *testing.T) {
+	r := fixtureReport(t)
+	r.Object, r.Fields = "", nil
+	d, _ := permsDeps(t, r, nil, nil)
+	_, so, _ := runPermsCapture(t, d, "alex@acme.example", "--org", "x", "--format", "json")
+	var m map[string]any
+	if err := json.Unmarshal([]byte(so), &m); err != nil {
+		t.Fatal(err)
+	}
+	if f, ok := m["fields"]; !ok || f == nil {
+		t.Errorf("fields should be an empty array, not absent or null: %v", m["fields"])
+	}
+}
+
+func TestPerms_EmptyReport(t *testing.T) {
+	r := sf.PermissionsReport{User: fixtureReport(t).User, Assignments: []sf.PermSetAssignment{}, Objects: []sf.ObjectPerm{}, Errors: []sf.SectionError{}}
+	d, _ := permsDeps(t, r, nil, nil)
+	code, so, _ := runPermsCapture(t, d, "alex@acme.example", "--org", "x")
+	if code != 0 || !strings.Contains(so, "Assignments (0):") || !strings.Contains(so, "Object permissions (0 objects):") {
+		t.Errorf("exit=%d stdout=%q", code, so)
+	}
+}
