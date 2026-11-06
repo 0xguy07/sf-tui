@@ -1,0 +1,14 @@
+{
+  "status": 0,
+  "result": {
+    "sobjects": [
+      {
+        "name": "Other__c",
+        "label": "Other",
+        "custom": true,
+        "queryable": true,
+        "keyPrefix": "a01"
+      }
+    ]
+  }
+}

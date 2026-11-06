@@ -1,0 +1,98 @@
+{
+  "status": 0,
+  "result": {
+    "name": "Widget__c",
+    "label": "Widget__c",
+    "custom": true,
+    "fields": [
+      {
+        "name": "Id",
+        "label": "Id",
+        "type": "id",
+        "length": 18,
+        "nillable": false,
+        "updateable": false,
+        "createable": false,
+        "custom": false,
+        "calculatedFormula": "",
+        "inlineHelpText": "",
+        "referenceTo": [],
+        "picklistValues": []
+      },
+      {
+        "name": "Name",
+        "label": "Name",
+        "type": "string",
+        "length": 255,
+        "nillable": true,
+        "updateable": true,
+        "createable": true,
+        "custom": false,
+        "calculatedFormula": "",
+        "inlineHelpText": "",
+        "referenceTo": [],
+        "picklistValues": []
+      },
+      {
+        "name": "New__c",
+        "label": "New__c",
+        "type": "double",
+        "length": 0,
+        "nillable": true,
+        "updateable": true,
+        "createable": true,
+        "custom": true,
+        "calculatedFormula": "",
+        "inlineHelpText": "",
+        "referenceTo": [],
+        "picklistValues": []
+      },
+      {
+        "name": "Status__c",
+        "label": "Status__c",
+        "type": "picklist",
+        "length": 255,
+        "nillable": true,
+        "updateable": true,
+        "createable": true,
+        "custom": true,
+        "calculatedFormula": "",
+        "inlineHelpText": "",
+        "referenceTo": [],
+        "picklistValues": [
+          {
+            "value": "New",
+            "label": "New",
+            "active": true
+          },
+          {
+            "value": "Open",
+            "label": "Open",
+            "active": true
+          },
+          {
+            "value": "Closed",
+            "label": "Closed",
+            "active": true
+          }
+        ]
+      },
+      {
+        "name": "OwnerId",
+        "label": "OwnerId",
+        "type": "reference",
+        "length": 18,
+        "nillable": true,
+        "updateable": true,
+        "createable": true,
+        "custom": false,
+        "calculatedFormula": "",
+        "inlineHelpText": "",
+        "referenceTo": [
+          "User"
+        ],
+        "picklistValues": []
+      }
+    ]
+  }
+}

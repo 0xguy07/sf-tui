@@ -81,40 +81,50 @@ func loadSObjects(orgAliasOrUser string, force bool) tea.Cmd {
 		if orgAliasOrUser == "" {
 			return ErrMsg{Err: fmt.Errorf("no org selected")}
 		}
-		if !force {
-			if ss, at, ok := readSObjectCache(orgAliasOrUser); ok && cacheFresh(at) {
-				return SObjectsLoadedMsg{SObjects: ss, Cached: true, CachedAt: at}
-			}
-		}
-		out, err := exec.Command("sf", "sobject", "list",
-			"--target-org", orgAliasOrUser,
-			"--json",
-		).Output()
+		ss, cached, at, err := fetchSObjects(orgAliasOrUser, force)
 		if err != nil {
-			return ErrMsg{Err: fmt.Errorf("sf sobject list: %w", err)}
+			return ErrMsg{Err: err}
 		}
-		// `sf sobject list --json` returns {status, result: [names...]} in some versions,
-		// or a wrapped sobjects list in others. Try both.
-		var summaries []SObjectSummary
-		var names struct {
-			Status int      `json:"status"`
-			Result []string `json:"result"`
-		}
-		if err := json.Unmarshal(out, &names); err == nil && len(names.Result) > 0 {
-			summaries = make([]SObjectSummary, 0, len(names.Result))
-			for _, n := range names.Result {
-				summaries = append(summaries, SObjectSummary{Name: n, Label: n, Queryable: true})
-			}
-		} else {
-			var wrapped sobjectListResult
-			if err := json.Unmarshal(out, &wrapped); err != nil {
-				return ErrMsg{Err: fmt.Errorf("parse sobject list: %w", err)}
-			}
-			summaries = wrapped.Result.SObjects
-		}
-		writeSObjectCache(orgAliasOrUser, summaries)
-		return SObjectsLoadedMsg{SObjects: summaries}
+		return SObjectsLoadedMsg{SObjects: ss, Cached: cached, CachedAt: at}
 	}
+}
+
+// fetchSObjects returns the org's sobject list, from the on-disk cache when
+// fresh (unless force), otherwise from `sf sobject list`, writing the cache.
+func fetchSObjects(org string, force bool) ([]SObjectSummary, bool, time.Time, error) {
+	if !force {
+		if ss, at, ok := readSObjectCache(org); ok && cacheFresh(at) {
+			return ss, true, at, nil
+		}
+	}
+	out, err := exec.Command("sf", "sobject", "list",
+		"--target-org", org,
+		"--json",
+	).Output()
+	if err != nil {
+		return nil, false, time.Time{}, fmt.Errorf("sf sobject list: %w", sfCommandError(out, err))
+	}
+	// `sf sobject list --json` returns {status, result: [names...]} in some versions,
+	// or a wrapped sobjects list in others. Try both.
+	var summaries []SObjectSummary
+	var names struct {
+		Status int      `json:"status"`
+		Result []string `json:"result"`
+	}
+	if err := json.Unmarshal(out, &names); err == nil && len(names.Result) > 0 {
+		summaries = make([]SObjectSummary, 0, len(names.Result))
+		for _, n := range names.Result {
+			summaries = append(summaries, SObjectSummary{Name: n, Label: n, Queryable: true})
+		}
+	} else {
+		var wrapped sobjectListResult
+		if err := json.Unmarshal(out, &wrapped); err != nil {
+			return nil, false, time.Time{}, fmt.Errorf("parse sobject list: %w", err)
+		}
+		summaries = wrapped.Result.SObjects
+	}
+	writeSObjectCache(org, summaries)
+	return summaries, false, time.Time{}, nil
 }
 
 // LoadDescribe returns a describe, served from the on-disk cache when fresh and
@@ -132,24 +142,34 @@ func loadDescribe(orgAliasOrUser, sobject string, force bool) tea.Cmd {
 		if orgAliasOrUser == "" {
 			return ErrMsg{Err: fmt.Errorf("no org selected")}
 		}
-		if !force {
-			if d, at, ok := readDescribeCache(orgAliasOrUser, sobject); ok && cacheFresh(at) {
-				return DescribeLoadedMsg{Describe: d, Cached: true, CachedAt: at}
-			}
-		}
-		out, err := exec.Command("sf", "sobject", "describe",
-			"--target-org", orgAliasOrUser,
-			"--sobject", sobject,
-			"--json",
-		).Output()
+		d, cached, at, err := fetchDescribe(orgAliasOrUser, sobject, force)
 		if err != nil {
-			return ErrMsg{Err: fmt.Errorf("sf sobject describe %s: %w", sobject, err)}
+			return ErrMsg{Err: err}
 		}
-		var r describeResult
-		if err := json.Unmarshal(out, &r); err != nil {
-			return ErrMsg{Err: fmt.Errorf("parse describe: %w", err)}
-		}
-		writeDescribeCache(orgAliasOrUser, r.Result)
-		return DescribeLoadedMsg{Describe: r.Result}
+		return DescribeLoadedMsg{Describe: d, Cached: cached, CachedAt: at}
 	}
+}
+
+// fetchDescribe returns one sobject's describe, from the on-disk cache when
+// fresh (unless force), otherwise from `sf sobject describe`, writing the cache.
+func fetchDescribe(org, sobject string, force bool) (Describe, bool, time.Time, error) {
+	if !force {
+		if d, at, ok := readDescribeCache(org, sobject); ok && cacheFresh(at) {
+			return d, true, at, nil
+		}
+	}
+	out, err := exec.Command("sf", "sobject", "describe",
+		"--target-org", org,
+		"--sobject", sobject,
+		"--json",
+	).Output()
+	if err != nil {
+		return Describe{}, false, time.Time{}, fmt.Errorf("sf sobject describe %s: %w", sobject, sfCommandError(out, err))
+	}
+	var r describeResult
+	if err := json.Unmarshal(out, &r); err != nil {
+		return Describe{}, false, time.Time{}, fmt.Errorf("parse describe: %w", err)
+	}
+	writeDescribeCache(org, r.Result)
+	return r.Result, false, time.Time{}, nil
 }

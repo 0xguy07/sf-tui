@@ -1,0 +1,97 @@
+{
+  "a": {
+    "org": "aorg",
+    "sobjects": 4,
+    "cached": true
+  },
+  "b": {
+    "org": "borg",
+    "sobjects": 4,
+    "cached": false
+  },
+  "objects": [
+    {
+      "name": "Account",
+      "custom": false,
+      "state": "both"
+    },
+    {
+      "name": "Contact",
+      "custom": false,
+      "state": "both"
+    },
+    {
+      "name": "Legacy__c",
+      "custom": true,
+      "state": "only-a"
+    },
+    {
+      "name": "NewThing__c",
+      "custom": true,
+      "state": "only-b"
+    },
+    {
+      "name": "Widget__c",
+      "custom": true,
+      "state": "both"
+    }
+  ],
+  "fields": [
+    {
+      "sobject": "Account",
+      "onlyA": [],
+      "onlyB": [],
+      "changed": [],
+      "same": 3,
+      "different": false
+    },
+    {
+      "sobject": "Contact",
+      "onlyA": [],
+      "onlyB": [],
+      "changed": [],
+      "same": 3,
+      "different": false
+    },
+    {
+      "sobject": "Widget__c",
+      "onlyA": [
+        {
+          "name": "Old__c",
+          "type": "string(40) [custom]"
+        }
+      ],
+      "onlyB": [
+        {
+          "name": "New__c",
+          "type": "double [custom]"
+        }
+      ],
+      "changed": [
+        {
+          "name": "Name",
+          "attrs": [
+            "length: 80 → 255"
+          ]
+        },
+        {
+          "name": "Status__c",
+          "attrs": [
+            "picklist values differ"
+          ]
+        }
+      ],
+      "same": 2,
+      "different": true
+    }
+  ],
+  "summary": {
+    "onlyA": 1,
+    "onlyB": 1,
+    "both": 3,
+    "objectsCompared": 3,
+    "objectsChanged": 1
+  },
+  "different": true,
+  "errors": []
+}

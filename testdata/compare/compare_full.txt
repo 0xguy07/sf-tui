@@ -1,0 +1,24 @@
+Schema compare
+  A: aorg  (4 sobjects)  (cached)
+  B: borg  (4 sobjects)
+
+Objects: 1 only in A, 1 only in B, 3 in both
+
+Only in A:
+  - Legacy__c  (custom)
+
+Only in B:
+  + NewThing__c  (custom)
+
+Fields: 3 objects compared, 1 with differences
+
+Widget__c
+  - Old__c  string(40) [custom]
+  + New__c  double [custom]
+  ~ Name
+      length: 80 → 255
+  ~ Status__c
+      picklist values differ
+  = 2 unchanged
+
+Objects and fields only. Validation rules, flows, permission sets and layouts are not compared.

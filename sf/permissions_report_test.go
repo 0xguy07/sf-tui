@@ -178,7 +178,7 @@ func TestSFCommandError(t *testing.T) {
 	if got := sfCommandError(nil, withStderr); !strings.Contains(got.Error(), "newer version") {
 		t.Errorf("stderr used when stdout has no JSON message, got %v", got)
 	}
-	if got := sfCommandError(nil, errors.New("exec: \"sf\": executable file not found")); !strings.Contains(got.Error(), "executable file not found") {
-		t.Errorf("plain error wrapped, got %v", got)
+	if got := sfCommandError(nil, errors.New("exec: \"sf\": executable file not found")); !strings.Contains(got.Error(), "executable file not found") || strings.Contains(got.Error(), "data query") {
+		t.Errorf("plain error wrapped without a command-specific prefix, got %v", got)
 	}
 }

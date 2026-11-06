@@ -16,6 +16,7 @@ type cliDeps struct {
 	defaultOrg  func() (string, error)
 	resolveUser func(org, ident string) (sf.UserBrief, error)
 	perms       func(org string, user sf.UserBrief, object string) (sf.PermissionsReport, error)
+	compare     func(aOrg, bOrg string, opts sf.CompareOptions) (sf.SchemaDiff, error)
 }
 
 // prodDeps wires the real Salesforce access used by `sftui why`.
@@ -30,6 +31,9 @@ func prodDeps() cliDeps {
 		},
 		perms: func(org string, user sf.UserBrief, object string) (sf.PermissionsReport, error) {
 			return sf.BuildPermissionsReport(sf.DefaultSOQLRunner(), org, user, object)
+		},
+		compare: func(aOrg, bOrg string, opts sf.CompareOptions) (sf.SchemaDiff, error) {
+			return sf.BuildSchemaDiff(sf.DefaultSchemaLoader(), aOrg, bOrg, opts)
 		},
 	}
 }
@@ -80,6 +84,7 @@ func usage() string {
   sftui                         start the TUI
   sftui why <recordId> [flags]  explain why a record changed (read-only)
   sftui perms <user> [flags]    what a user can do, and which perm set grants it (read-only)
+  sftui compare <orgA> <orgB>   schema diff between two orgs (read-only)
   sftui --version               print the version
 
 common flags:
@@ -91,6 +96,13 @@ why flags:
 
 perms flags:
   --object <SObject>            also show field-level permissions on this object
+
+compare flags:
+  --object <SObject>            field-level diff for one object
+  --fields                      field-level diff for every object present on both sides
+  --custom-only                 with --fields: custom objects only
+  --exit-code                   exit 3 when differences are found
+  --refresh                     bypass the 24-hour schema caches
 
 <user> may be an Id (005...), a username, or an exact display name.
 `
@@ -114,6 +126,8 @@ func runCLI(args []string, stdout, stderr io.Writer, d cliDeps) (handled bool, c
 		return true, runWhy(args[1:], stdout, stderr, d)
 	case "perms":
 		return true, runPerms(args[1:], stdout, stderr, d)
+	case "compare":
+		return true, runCompare(args[1:], stdout, stderr, d)
 	default:
 		fmt.Fprintf(stderr, "unknown command %q\n\n%s", args[0], usage())
 		return true, 2

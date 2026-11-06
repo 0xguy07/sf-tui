@@ -1,0 +1,63 @@
+{
+  "status": 0,
+  "result": {
+    "name": "Account",
+    "label": "Account",
+    "custom": false,
+    "fields": [
+      {
+        "name": "Id",
+        "label": "Id",
+        "type": "id",
+        "length": 18,
+        "nillable": false,
+        "updateable": false,
+        "createable": false,
+        "custom": false,
+        "calculatedFormula": "",
+        "inlineHelpText": "",
+        "referenceTo": [],
+        "picklistValues": []
+      },
+      {
+        "name": "Name",
+        "label": "Name",
+        "type": "string",
+        "length": 255,
+        "nillable": false,
+        "updateable": true,
+        "createable": true,
+        "custom": false,
+        "calculatedFormula": "",
+        "inlineHelpText": "",
+        "referenceTo": [],
+        "picklistValues": []
+      },
+      {
+        "name": "Industry",
+        "label": "Industry",
+        "type": "picklist",
+        "length": 40,
+        "nillable": true,
+        "updateable": true,
+        "createable": true,
+        "custom": false,
+        "calculatedFormula": "",
+        "inlineHelpText": "",
+        "referenceTo": [],
+        "picklistValues": [
+          {
+            "value": "Energy",
+            "label": "Energy",
+            "active": true
+          },
+          {
+            "value": "Technology",
+            "label": "Technology",
+            "active": true
+          }
+        ]
+      }
+    ]
+  }
+}

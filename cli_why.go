@@ -79,16 +79,26 @@ func (p prefixWriter) Write(b []byte) (int, error) {
 	return p.w.Write(b)
 }
 
-// splitPositional pulls the first non-flag argument out as the record Id so
-// it may appear before or after the flags. "--" ends flag parsing: everything
-// after it is positional. Any positional beyond the Id is handed back after a
-// "--" so flag.Parse leaves it in fs.Args() for the caller to reject.
+// splitPositional pulls the first non-flag argument out as the positional so
+// it may appear before or after the flags. See splitPositionalN.
 func splitPositional(args []string) (id string, rest []string) {
+	pos, rest := splitPositionalN(args, 1)
+	if len(pos) > 0 {
+		id = pos[0]
+	}
+	return id, rest
+}
+
+// splitPositionalN pulls up to n non-flag arguments out of args so they may
+// appear before or after the flags. "--" ends flag parsing: everything after
+// it is positional. Positionals beyond n are handed back after a "--" so
+// flag.Parse leaves them in fs.Args() for the caller to reject.
+func splitPositionalN(args []string, n int) (positionals []string, rest []string) {
 	takesValue := map[string]bool{"--org": true, "-org": true, "--o": true, "-o": true, "--format": true, "-format": true, "--object": true, "-object": true}
 	var extra []string
 	take := func(a string) {
-		if id == "" {
-			id = a
+		if len(positionals) < n {
+			positionals = append(positionals, a)
 		} else {
 			extra = append(extra, a)
 		}
@@ -103,7 +113,7 @@ func splitPositional(args []string) (id string, rest []string) {
 		}
 		if strings.HasPrefix(a, "-") {
 			rest = append(rest, a)
-			if takesValue[a] && i+1 < len(args) {
+			if takesValue[a] && !strings.Contains(a, "=") && i+1 < len(args) {
 				i++
 				rest = append(rest, args[i])
 			}
@@ -115,5 +125,5 @@ func splitPositional(args []string) (id string, rest []string) {
 		rest = append(rest, "--")
 		rest = append(rest, extra...)
 	}
-	return id, rest
+	return positionals, rest
 }

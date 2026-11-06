@@ -89,6 +89,20 @@ sftui perms alex@acme.example --org prod --format json \
   | jq -r '.objects[] | select(.grants.delete | length > 0) | .sobject'
 ```
 
+Did two orgs drift?
+
+```
+sftui compare <orgA> <orgB> [--object <SObject> | --fields [--custom-only]] [--exit-code] [--refresh] [--format text|json]
+```
+
+By default this is the object-level diff (one `sf sobject list` per org, fast). `--object X` adds the field-level diff for one object; `--fields` does it for every object present on both sides through a 4-way describe pool, and `--custom-only` keeps that to custom objects, which is where drift lives. `--exit-code` exits **3** when anything differs, so it works as a CI gate:
+
+```yaml
+- run: sftui compare uat prod --fields --custom-only --exit-code
+```
+
+`--refresh` bypasses the 24-hour schema caches; text output marks a side as `(cached)` when it came from disk. Objects and fields only; validation rules, flows and permission sets are not compared.
+
 The JSON shapes are the TUI's own structures; see the [Scripting and JSON](https://github.com/0xguy07/sf-tui/wiki/Scripting-and-JSON) wiki page for the field references. They are unstable until 1.0.
 
 ## Tabs
@@ -184,6 +198,8 @@ The JSON shapes are the TUI's own structures; see the [Scripting and JSON](https
 - [x] `sftui why <recordId>`: the Why trace as text or JSON, for scripts and CI
 - [x] `sftui perms <user>`: effective permissions with per-permission sources, as text or JSON
 - [x] Perms tab shows which perm set grants each permission, and Modify/View All Data overrides
+- [x] `sftui compare <orgA> <orgB>`: object- and field-level schema diff as text or JSON, exit 3 on drift
+- [x] Compare tab shows which sides came from the cache
 
 ## Safety
 

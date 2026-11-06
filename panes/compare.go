@@ -2,7 +2,6 @@ package panes
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -36,10 +35,14 @@ type Compare struct {
 	width    int
 	height   int
 
-	aOrg string
-	bOrg string
-	aObj map[string]sf.SObjectSummary
-	bObj map[string]sf.SObjectSummary
+	aOrg    string
+	bOrg    string
+	aObj    map[string]sf.SObjectSummary
+	bObj    map[string]sf.SObjectSummary
+	aList   []sf.SObjectSummary
+	bList   []sf.SObjectSummary
+	aCached bool
+	bCached bool
 
 	// fieldView is the sobject whose field-level diff is currently displayed
 	// in the viewport (cleared when user navigates back to the summary).
@@ -119,18 +122,16 @@ func (c Compare) SelectedSides() (bool, bool) {
 	return inA, inB
 }
 
-func (c *Compare) SetSchema(side, org string, objs []sf.SObjectSummary) {
+func (c *Compare) SetSchema(side, org string, objs []sf.SObjectSummary, cached bool) {
 	m := map[string]sf.SObjectSummary{}
 	for _, o := range objs {
 		m[o.Name] = o
 	}
 	switch side {
 	case "A":
-		c.aOrg = org
-		c.aObj = m
+		c.aOrg, c.aObj, c.aList, c.aCached = org, m, objs, cached
 	case "B":
-		c.bOrg = org
-		c.bObj = m
+		c.bOrg, c.bObj, c.bList, c.bCached = org, m, objs, cached
 	}
 	c.fieldView = ""
 	c.refresh()
@@ -141,6 +142,8 @@ func (c *Compare) Clear() {
 	c.bOrg = ""
 	c.aObj = map[string]sf.SObjectSummary{}
 	c.bObj = map[string]sf.SObjectSummary{}
+	c.aList, c.bList = nil, nil
+	c.aCached, c.bCached = false, false
 	c.fieldView = ""
 	c.List.SetItems(nil)
 	c.Viewport.SetContent(lipgloss.NewStyle().Faint(true).Render(
@@ -189,50 +192,18 @@ func (c *Compare) refresh() {
 		return
 	}
 
-	names := map[string]bool{}
-	for n := range c.aObj {
-		names[n] = true
+	states, sum := sf.DiffSObjects(c.aList, c.bList)
+	items := make([]list.Item, 0, len(states))
+	for _, st := range states {
+		items = append(items, diffItem{name: st.Name, state: st.State, custom: st.Custom})
 	}
-	for n := range c.bObj {
-		names[n] = true
-	}
-	sorted := make([]string, 0, len(names))
-	for n := range names {
-		sorted = append(sorted, n)
-	}
-	sort.Strings(sorted)
-
-	var onlyA, onlyB, both int
-	items := make([]list.Item, 0, len(sorted))
-	for _, n := range sorted {
-		_, inA := c.aObj[n]
-		bObj, inB := c.bObj[n]
-		state := ""
-		switch {
-		case inA && !inB:
-			state = "only-a"
-			onlyA++
-		case !inA && inB:
-			state = "only-b"
-			onlyB++
-		default:
-			state = "both"
-			both++
-		}
-		custom := false
-		if inA {
-			custom = c.aObj[n].Custom
-		} else {
-			custom = bObj.Custom
-		}
-		items = append(items, diffItem{name: n, state: state, custom: custom})
-	}
+	onlyA, onlyB, both := sum.OnlyA, sum.OnlyB, sum.Both
 	c.List.SetItems(items)
 
 	var b strings.Builder
 	fmt.Fprintln(&b, cmpHeader.Render("Compare"))
-	fmt.Fprintf(&b, "  A: %s (%d)\n", c.aOrg, len(c.aObj))
-	fmt.Fprintf(&b, "  B: %s (%d)\n", c.bOrg, len(c.bObj))
+	fmt.Fprintf(&b, "  A: %s (%d)%s\n", c.aOrg, len(c.aObj), cachedMark(c.aCached))
+	fmt.Fprintf(&b, "  B: %s (%d)%s\n", c.bOrg, len(c.bObj), cachedMark(c.bCached))
 	fmt.Fprintln(&b)
 	fmt.Fprintf(&b, "  %s only in A:  %d\n", cmpA.Render("◀"), onlyA)
 	fmt.Fprintf(&b, "  %s only in B:  %d\n", cmpB.Render("▶"), onlyB)
@@ -272,8 +243,8 @@ func diffGlyph(state string) string {
 func renderFieldDiff(msg sf.FieldDiffLoadedMsg, aOrg, bOrg string) string {
 	var b strings.Builder
 	fmt.Fprintln(&b, cmpHeader.Render("Field diff: "+msg.SObject))
-	fmt.Fprintf(&b, "  A: %s\n", aOrg)
-	fmt.Fprintf(&b, "  B: %s\n", bOrg)
+	fmt.Fprintf(&b, "  A: %s%s\n", aOrg, cachedMark(msg.ACached))
+	fmt.Fprintf(&b, "  B: %s%s\n", bOrg, cachedMark(msg.BCached))
 	fmt.Fprintln(&b)
 
 	if msg.AErr != "" {
@@ -283,57 +254,8 @@ func renderFieldDiff(msg sf.FieldDiffLoadedMsg, aOrg, bOrg string) string {
 		fmt.Fprintln(&b, cmpErr.Render("B describe failed: "+msg.BErr))
 	}
 
-	aFields := map[string]sf.Field{}
-	bFields := map[string]sf.Field{}
-	if msg.A != nil {
-		for _, f := range msg.A.Fields {
-			aFields[f.Name] = f
-		}
-	}
-	if msg.B != nil {
-		for _, f := range msg.B.Fields {
-			bFields[f.Name] = f
-		}
-	}
-
-	all := map[string]bool{}
-	for n := range aFields {
-		all[n] = true
-	}
-	for n := range bFields {
-		all[n] = true
-	}
-	names := make([]string, 0, len(all))
-	for n := range all {
-		names = append(names, n)
-	}
-	sort.Strings(names)
-
-	type changedRow struct {
-		name string
-		why  []string
-	}
-
-	var onlyA, onlyB []sf.Field
-	var changed []changedRow
-	var same int
-	for _, n := range names {
-		af, inA := aFields[n]
-		bf, inB := bFields[n]
-		switch {
-		case inA && !inB:
-			onlyA = append(onlyA, af)
-		case !inA && inB:
-			onlyB = append(onlyB, bf)
-		default:
-			diffs := fieldAttrDiff(af, bf)
-			if len(diffs) == 0 {
-				same++
-			} else {
-				changed = append(changed, changedRow{name: n, why: diffs})
-			}
-		}
-	}
+	fd := sf.DiffFields(msg.SObject, msg.A, msg.B)
+	onlyA, onlyB, changed, same := fd.OnlyA, fd.OnlyB, fd.Changed, fd.Same
 
 	fmt.Fprintf(&b, "  %s  %d only in A     %s  %d only in B     %s  %d changed     %s  %d same\n",
 		cmpDel.Render("-"), len(onlyA),
@@ -345,24 +267,22 @@ func renderFieldDiff(msg sf.FieldDiffLoadedMsg, aOrg, bOrg string) string {
 	if len(onlyA) > 0 {
 		fmt.Fprintln(&b, cmpDel.Render("Only in A (would be deleted on B):"))
 		for _, f := range onlyA {
-			fmt.Fprintf(&b, "  %s %s  %s\n",
-				cmpDel.Render("-"), f.Name, cmpDim.Render(fieldTypeLabel(f)))
+			fmt.Fprintf(&b, "  %s %s  %s\n", cmpDel.Render("-"), f.Name, cmpDim.Render(f.Type))
 		}
 		fmt.Fprintln(&b)
 	}
 	if len(onlyB) > 0 {
 		fmt.Fprintln(&b, cmpAdd.Render("Only in B (would be added to A):"))
 		for _, f := range onlyB {
-			fmt.Fprintf(&b, "  %s %s  %s\n",
-				cmpAdd.Render("+"), f.Name, cmpDim.Render(fieldTypeLabel(f)))
+			fmt.Fprintf(&b, "  %s %s  %s\n", cmpAdd.Render("+"), f.Name, cmpDim.Render(f.Type))
 		}
 		fmt.Fprintln(&b)
 	}
 	if len(changed) > 0 {
 		fmt.Fprintln(&b, cmpChg.Render("Changed (different attributes):"))
 		for _, c := range changed {
-			fmt.Fprintf(&b, "  %s %s\n", cmpChg.Render("~"), c.name)
-			for _, w := range c.why {
+			fmt.Fprintf(&b, "  %s %s\n", cmpChg.Render("~"), c.Name)
+			for _, w := range c.Attrs {
 				fmt.Fprintf(&b, "      %s\n", cmpDim.Render(w))
 			}
 		}
@@ -372,107 +292,6 @@ func renderFieldDiff(msg sf.FieldDiffLoadedMsg, aOrg, bOrg string) string {
 		fmt.Fprintln(&b, cmpBoth.Render("No field-level differences."))
 	}
 	return b.String()
-}
-
-func fieldTypeLabel(f sf.Field) string {
-	t := f.Type
-	if f.Type == "reference" && len(f.ReferenceTo) > 0 {
-		t = "reference→" + strings.Join(f.ReferenceTo, ",")
-	}
-	if f.Length > 0 && (f.Type == "string" || f.Type == "textarea") {
-		t = fmt.Sprintf("%s(%d)", f.Type, f.Length)
-	}
-	tags := []string{}
-	if !f.Nillable {
-		tags = append(tags, "required")
-	}
-	if f.Custom {
-		tags = append(tags, "custom")
-	}
-	if !f.Updateable {
-		tags = append(tags, "read-only")
-	}
-	if len(tags) > 0 {
-		t += " [" + strings.Join(tags, ",") + "]"
-	}
-	return t
-}
-
-// fieldAttrDiff returns the human-readable list of attributes that differ
-// between the two sides of the same field. Empty slice means identical.
-func fieldAttrDiff(a, b sf.Field) []string {
-	var diffs []string
-	if a.Type != b.Type {
-		diffs = append(diffs, fmt.Sprintf("type: %s → %s", a.Type, b.Type))
-	}
-	if a.Length != b.Length {
-		diffs = append(diffs, fmt.Sprintf("length: %d → %d", a.Length, b.Length))
-	}
-	if a.Nillable != b.Nillable {
-		diffs = append(diffs, fmt.Sprintf("required: %v → %v", !a.Nillable, !b.Nillable))
-	}
-	if a.Updateable != b.Updateable {
-		diffs = append(diffs, fmt.Sprintf("updateable: %v → %v", a.Updateable, b.Updateable))
-	}
-	if a.Createable != b.Createable {
-		diffs = append(diffs, fmt.Sprintf("createable: %v → %v", a.Createable, b.Createable))
-	}
-	if a.Custom != b.Custom {
-		diffs = append(diffs, fmt.Sprintf("custom: %v → %v", a.Custom, b.Custom))
-	}
-	if a.CalculatedFormula != b.CalculatedFormula {
-		diffs = append(diffs, "formula changed")
-	}
-	if !sameRefs(a.ReferenceTo, b.ReferenceTo) {
-		diffs = append(diffs, fmt.Sprintf("references: %v → %v", a.ReferenceTo, b.ReferenceTo))
-	}
-	if !samePicklist(a.PicklistValues, b.PicklistValues) {
-		diffs = append(diffs, "picklist values differ")
-	}
-	return diffs
-}
-
-func sameRefs(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	x := append([]string(nil), a...)
-	y := append([]string(nil), b...)
-	sort.Strings(x)
-	sort.Strings(y)
-	for i := range x {
-		if x[i] != y[i] {
-			return false
-		}
-	}
-	return true
-}
-
-func samePicklist(a, b []sf.PicklistValue) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	mk := func(p []sf.PicklistValue) []string {
-		out := make([]string, 0, len(p))
-		for _, v := range p {
-			if v.Active {
-				out = append(out, v.Value)
-			}
-		}
-		sort.Strings(out)
-		return out
-	}
-	x := mk(a)
-	y := mk(b)
-	if len(x) != len(y) {
-		return false
-	}
-	for i := range x {
-		if x[i] != y[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func (c Compare) UpdateList(msg tea.Msg) (Compare, tea.Cmd) {
@@ -494,4 +313,11 @@ func (c Compare) View(listFocus, detailFocus bool) string {
 	left := BorderFor(listFocus).Render(c.List.View())
 	right := BorderFor(detailFocus).Render(c.Viewport.View())
 	return lipgloss.JoinHorizontal(lipgloss.Top, left, right)
+}
+
+func cachedMark(cached bool) string {
+	if cached {
+		return cmpDim.Render("  (cached)")
+	}
+	return ""
 }
