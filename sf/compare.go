@@ -12,7 +12,30 @@ type SchemaLoadedMsg struct {
 	Side     string
 	Org      string
 	SObjects []SObjectSummary
+	Cached   bool // served from the on-disk cache
 }
+
+// SchemaLoader is the I/O seam for schema compares: sobject lists and
+// describes for an org, with a flag saying whether the result came from cache.
+type SchemaLoader interface {
+	SObjects(org string, force bool) ([]SObjectSummary, bool, error)
+	Describe(org, sobject string, force bool) (Describe, bool, error)
+}
+
+type sfSchemaLoader struct{}
+
+func (sfSchemaLoader) SObjects(org string, force bool) ([]SObjectSummary, bool, error) {
+	ss, cached, _, err := fetchSObjects(org, force)
+	return ss, cached, err
+}
+
+func (sfSchemaLoader) Describe(org, sobject string, force bool) (Describe, bool, error) {
+	d, cached, _, err := fetchDescribe(org, sobject, force)
+	return d, cached, err
+}
+
+// DefaultSchemaLoader returns the loader backed by the sf CLI and the on-disk cache.
+func DefaultSchemaLoader() SchemaLoader { return sfSchemaLoader{} }
 
 // LoadOrgSchema fetches the sobject list for an org and tags it with side.
 // Reuses sf sobject list (no per-object describes) so the diff is fast.
@@ -24,7 +47,7 @@ func LoadOrgSchema(orgAliasOrUser, side string) tea.Cmd {
 		raw := LoadSObjects(orgAliasOrUser)()
 		switch v := raw.(type) {
 		case SObjectsLoadedMsg:
-			return SchemaLoadedMsg{Side: side, Org: orgAliasOrUser, SObjects: v.SObjects}
+			return SchemaLoadedMsg{Side: side, Org: orgAliasOrUser, SObjects: v.SObjects, Cached: v.Cached}
 		case ErrMsg:
 			return v
 		default:
@@ -44,6 +67,8 @@ type FieldDiffLoadedMsg struct {
 	B       *Describe
 	AErr    string
 	BErr    string
+	ACached bool
+	BCached bool
 }
 
 // LoadFieldDiff fetches the describe for sobject from both A and B sides in
@@ -59,6 +84,7 @@ func LoadFieldDiff(aOrg, bOrg, sobject string) tea.Cmd {
 			case DescribeLoadedMsg:
 				d := v.Describe
 				msg.A = &d
+				msg.ACached = v.Cached
 			case ErrMsg:
 				msg.AErr = v.Error()
 			}
@@ -69,6 +95,7 @@ func LoadFieldDiff(aOrg, bOrg, sobject string) tea.Cmd {
 			case DescribeLoadedMsg:
 				d := v.Describe
 				msg.B = &d
+				msg.BCached = v.Cached
 			case ErrMsg:
 				msg.BErr = v.Error()
 			}
