@@ -135,3 +135,18 @@ func TestRunCLI_LimitsDispatch(t *testing.T) {
 		t.Error("usage should mention sftui limits")
 	}
 }
+
+func TestLimits_PositionalOrgHint(t *testing.T) {
+	d, orgs := limitsDeps(t, rawLimits(t), nil)
+	if code, _, se := runLimitsCapture(t, d, "prod"); code != 2 || !strings.Contains(se, "--org prod") || len(*orgs) != 0 {
+		t.Errorf("exit=%d stderr=%q", code, se)
+	}
+}
+
+func TestLimits_JSONHasErrorsArray(t *testing.T) {
+	d, _ := limitsDeps(t, rawLimits(t), nil)
+	_, so, _ := runLimitsCapture(t, d, "--org", "x", "--format", "json")
+	if !strings.Contains(so, `"errors": []`) {
+		t.Errorf("JSON should carry errors: [] like the other commands:\n%s", so)
+	}
+}

@@ -1,6 +1,7 @@
 package sf
 
 import (
+	"math"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -62,13 +63,16 @@ type LimitsReport struct {
 	Limits   []LimitUsage `json:"limits"`         // sorted by Pct desc, then Name
 	Warn     *int         `json:"warn,omitempty"` // the --warn threshold, when given
 	Breached []string     `json:"breached"`       // names with Pct >= Warn; never null
+	// Errors is always empty today (one sf call, no partial results) and is
+	// present so every command's JSON carries the same top-level shape.
+	Errors []SectionError `json:"errors"`
 }
 
 // BuildLimitsReport derives usage, sorts, and applies an optional threshold.
 func BuildLimitsReport(limits []Limit, org string, warn *int) LimitsReport {
-	r := LimitsReport{Org: org, Limits: make([]LimitUsage, 0, len(limits)), Warn: warn, Breached: []string{}}
+	r := LimitsReport{Org: org, Limits: make([]LimitUsage, 0, len(limits)), Warn: warn, Breached: []string{}, Errors: []SectionError{}}
 	for _, l := range limits {
-		pct := float64(int(l.Pct()*1000+0.5)) / 10 // one decimal
+		pct := math.Round(l.Pct()*1000) / 10 // one decimal; --warn compares this displayed value
 		r.Limits = append(r.Limits, LimitUsage{Name: l.Name, Max: l.Max, Remaining: l.Remaining, Used: l.Used(), Pct: pct})
 	}
 	sort.SliceStable(r.Limits, func(i, j int) bool {

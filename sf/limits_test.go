@@ -91,3 +91,26 @@ func TestHumanInt(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildLimitsReport_ThresholdUsesRoundedPct(t *testing.T) {
+	w := 90
+	r := BuildLimitsReport([]Limit{{Name: "X", Max: 10000, Remaining: 1004}}, "o", &w) // 89.96% → 90.0
+	if r.Limits[0].Pct != 90.0 || len(r.Breached) != 1 {
+		t.Errorf("pct=%v breached=%v; the threshold compares the displayed one-decimal percentage", r.Limits[0].Pct, r.Breached)
+	}
+}
+
+func TestBuildLimitsReport_NegativeRemaining(t *testing.T) {
+	w := 100
+	r := BuildLimitsReport([]Limit{{Name: "Soft", Max: 100, Remaining: -20}}, "o", &w)
+	if r.Limits[0].Used != 120 || r.Limits[0].Pct != 120.0 || len(r.Breached) != 1 {
+		t.Errorf("overage should show >100%% and breach: %+v", r.Limits[0])
+	}
+}
+
+func TestBuildLimitsReport_ErrorsNeverNull(t *testing.T) {
+	r := BuildLimitsReport(nil, "o", nil)
+	if r.Errors == nil || len(r.Errors) != 0 || r.Limits == nil {
+		t.Errorf("errors/limits must be empty non-nil: %#v", r)
+	}
+}
