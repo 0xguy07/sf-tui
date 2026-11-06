@@ -91,7 +91,7 @@ why flags:
   --org, -o <alias|username>    org to query (default: the sf default target org)
   --format <text|json>          output format (default: text)
   --refresh                     bypass the 24-hour automation cache
-  --timeout <duration>          deadline per sf call, e.g. 90s or 2m (default 10m, or SFTUI_TIMEOUT)
+  --timeout <duration>          deadline per sf call, e.g. 90s or 2m (default 10m; deploys/tests 40m; or SFTUI_TIMEOUT)
 
 perms flags:
   --org, -o <alias|username>    org to query (default: the sf default target org)

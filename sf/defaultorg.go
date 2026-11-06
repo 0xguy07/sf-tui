@@ -16,7 +16,7 @@ var sfConfigGet = func() ([]byte, error) {
 func DefaultTargetOrg() (string, error) {
 	out, err := sfConfigGet()
 	if err != nil && len(out) == 0 {
-		return "", fmt.Errorf("sf config get target-org: %w", err)
+		return "", sfCommandError("sf config get target-org", out, err)
 	}
 	return parseTargetOrg(out)
 }

@@ -28,7 +28,7 @@ func LoadOrgs() tea.Cmd {
 	return func() tea.Msg {
 		out, err := sfCommand("sf org list", "org", "list", "--json").Output()
 		if err != nil {
-			return ErrMsg{Err: fmt.Errorf("sf org list: %w", err)}
+			return ErrMsg{Err: sfCommandError("sf org list", out, err)}
 		}
 		all, err := parseOrgList(out)
 		if err != nil {

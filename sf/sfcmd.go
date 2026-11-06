@@ -14,20 +14,41 @@ import (
 // test runs legitimately take minutes; the point is "never forever".
 const DefaultTimeout = 10 * time.Minute
 
+// DefaultLongTimeout is the default for commands that legitimately run long:
+// `sf project deploy start` (sf waits up to 33 minutes on its own) and
+// `sf apex run test --wait 10`. An explicit --timeout / SFTUI_TIMEOUT
+// overrides it; the user chose, so it applies to everything.
+const DefaultLongTimeout = 40 * time.Minute
+
 // TimeoutEnv is the environment variable that overrides the default, in Go
 // duration syntax (e.g. "90s", "2m"). The CLI's --timeout flag overrides both.
 const TimeoutEnv = "SFTUI_TIMEOUT"
 
 var (
-	timeoutMu sync.RWMutex
-	sfTimeout = DefaultTimeout
+	timeoutMu       sync.RWMutex
+	sfTimeout       = DefaultTimeout
+	timeoutExplicit bool
 )
 
-// SetTimeout sets the deadline applied to subsequent sf invocations.
+// SetTimeout sets the deadline applied to subsequent sf invocations. An
+// explicit value also applies to long-running commands.
 func SetTimeout(d time.Duration) {
 	timeoutMu.Lock()
-	sfTimeout = d
+	sfTimeout, timeoutExplicit = d, true
 	timeoutMu.Unlock()
+}
+
+// resetTimeout restores the defaults (tests).
+func resetTimeout() {
+	timeoutMu.Lock()
+	sfTimeout, timeoutExplicit = DefaultTimeout, false
+	timeoutMu.Unlock()
+}
+
+func timeoutIsExplicit() bool {
+	timeoutMu.RLock()
+	defer timeoutMu.RUnlock()
+	return timeoutExplicit
 }
 
 // Timeout returns the current sf deadline.
@@ -86,7 +107,20 @@ type sfRun struct {
 // sfCommand prepares `sf args...` under the current deadline. label names the
 // command in errors, e.g. "sf data query".
 func sfCommand(label string, args ...string) *sfRun {
+	return newSFRun(label, Timeout(), args...)
+}
+
+// sfCommandLong is sfCommand for commands that legitimately run long: the
+// deadline is longDefault unless the user set a timeout explicitly.
+func sfCommandLong(label string, longDefault time.Duration, args ...string) *sfRun {
 	after := Timeout()
+	if !timeoutIsExplicit() {
+		after = longDefault
+	}
+	return newSFRun(label, after, args...)
+}
+
+func newSFRun(label string, after time.Duration, args ...string) *sfRun {
 	ctx, cancel := context.WithTimeout(context.Background(), after)
 	cmd := exec.CommandContext(ctx, "sf", args...)
 	killGroup(cmd)

@@ -87,3 +87,11 @@ func TestTimeoutEnv_InvalidWarnsAndContinues(t *testing.T) {
 		t.Errorf("applyTimeoutEnv warning = %q", w)
 	}
 }
+
+func TestJoinStatus(t *testing.T) {
+	for _, c := range []struct{ a, b, want string }{{"", "x", "x"}, {"a", "", "a"}, {"a", "b", "a · b"}, {"", "", ""}} {
+		if got := joinStatus(c.a, c.b); got != c.want {
+			t.Errorf("joinStatus(%q,%q) = %q, want %q", c.a, c.b, got, c.want)
+		}
+	}
+}

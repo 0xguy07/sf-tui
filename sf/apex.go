@@ -68,7 +68,7 @@ func RunApex(g WriteGate, orgAliasOrUser, code string) tea.Cmd {
 			if ee, ok := err.(*exec.ExitError); ok && len(ee.Stderr) > 0 {
 				return ErrMsg{Err: fmt.Errorf("%s", string(ee.Stderr))}
 			}
-			return ErrMsg{Err: fmt.Errorf("sf apex run: %w", err)}
+			return ErrMsg{Err: sfCommandError("sf apex run", out, err)}
 		}
 		var r apexRunResult
 		if err := json.Unmarshal(out, &r); err != nil {

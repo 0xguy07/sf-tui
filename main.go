@@ -145,10 +145,7 @@ func initialModel() model {
 	gates := sf.NewGate(cfg, cfgErr)
 	startErr := startupWarning
 	if cfgErr != nil {
-		if startErr != "" {
-			startErr += " · "
-		}
-		startErr += "config: " + cfgErr.Error() + " — all orgs locked until it's fixed"
+		startErr = joinStatus(startErr, "config: "+cfgErr.Error()+" — all orgs locked until it's fixed")
 	}
 
 	store, _ := sf.LoadStore()
@@ -2287,6 +2284,17 @@ func (m *model) finishWhy() {
 
 // startupWarning is shown in the TUI's status line when set before initialModel runs.
 var startupWarning string
+
+// joinStatus joins two optional status fragments with a separator.
+func joinStatus(a, b string) string {
+	switch {
+	case a == "":
+		return b
+	case b == "":
+		return a
+	}
+	return a + " · " + b
+}
 
 func main() {
 	if handled, code := runCLI(os.Args[1:], os.Stdout, os.Stderr, prodDeps()); handled {

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +15,9 @@ import (
 // config dir. body is the script after the shebang.
 func fakeSF(t *testing.T, body string) {
 	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("the fake sf is a shell script")
+	}
 	dir := t.TempDir()
 	script := filepath.Join(dir, "sf")
 	if err := os.WriteFile(script, []byte("#!/bin/sh\n"+body+"\n"), 0o755); err != nil {
@@ -26,9 +30,21 @@ func fakeSF(t *testing.T, body string) {
 
 func withTimeout(t *testing.T, d time.Duration) {
 	t.Helper()
-	old := Timeout()
+	restoreTimeoutState(t)
 	SetTimeout(d)
-	t.Cleanup(func() { SetTimeout(old) })
+}
+
+// restoreTimeoutState puts the global deadline (value and explicit flag) back after the test.
+func restoreTimeoutState(t *testing.T) {
+	t.Helper()
+	old, explicit := Timeout(), timeoutIsExplicit()
+	t.Cleanup(func() {
+		if explicit {
+			SetTimeout(old)
+		} else {
+			resetTimeout()
+		}
+	})
 }
 
 func TestSfCommand_Timeout(t *testing.T) {
@@ -163,4 +179,55 @@ func TestBuildSchemaDiff_DescribeTimeoutIsSectionError(t *testing.T) {
 	if len(d.Errors) != 2 || !strings.Contains(d.Errors[0].Message, "timed out") {
 		t.Errorf("errors = %+v", d.Errors)
 	}
+}
+
+func TestRunDeploy_TimeoutIsAnError(t *testing.T) {
+	fakeSF(t, sleepingSF)
+	withTimeout(t, 100*time.Millisecond)
+	msg := RunDeployDryRun("x", t.TempDir())()
+	done, ok := msg.(DeployRunDoneMsg)
+	if !ok {
+		t.Fatalf("got %#v", msg)
+	}
+	if !strings.Contains(done.Err, "timed out") || !strings.Contains(done.Err, "sf project deploy report") {
+		t.Errorf("a timed-out deploy must be an error that points at deploy report, got Err=%q", done.Err)
+	}
+}
+
+func TestSfCommandLong_DefaultFloorUnlessExplicit(t *testing.T) {
+	restoreTimeoutState(t)
+	resetTimeout()
+	r := sfCommandLong("sf project deploy start", 40*time.Minute, "x")
+	r.cancel()
+	if r.after != 40*time.Minute {
+		t.Errorf("default long deadline = %v, want 40m", r.after)
+	}
+	SetTimeout(100 * time.Millisecond)
+	r = sfCommandLong("sf project deploy start", 40*time.Minute, "x")
+	r.cancel()
+	if r.after != 100*time.Millisecond {
+		t.Errorf("an explicit timeout must win, got %v", r.after)
+	}
+}
+
+func TestTimeoutLabelsNotDoubled(t *testing.T) {
+	fakeSF(t, sleepingSF)
+	withTimeout(t, 100*time.Millisecond)
+	check := func(name string, err error) {
+		t.Helper()
+		if err == nil {
+			t.Errorf("%s: expected an error", name)
+			return
+		}
+		msg := err.Error()
+		label := msg[:strings.Index(msg, ":")]
+		if strings.Count(msg, label) != 1 || !strings.Contains(msg, "timed out") {
+			t.Errorf("%s: label doubled or not a timeout: %q", name, msg)
+		}
+	}
+	check("LoadOrgs", LoadOrgs()().(ErrMsg).Err)
+	_, err := DefaultTargetOrg()
+	check("DefaultTargetOrg", err)
+	_, err = orgDisplay("x")
+	check("orgDisplay", err)
 }

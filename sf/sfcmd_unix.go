@@ -3,6 +3,8 @@
 package sf
 
 import (
+	"errors"
+	"os"
 	"os/exec"
 	"syscall"
 )
@@ -16,6 +18,11 @@ func killGroup(cmd *exec.Cmd) {
 		if cmd.Process == nil {
 			return nil
 		}
-		return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		if errors.Is(err, syscall.ESRCH) {
+			// The group already exited at the deadline: not a timeout.
+			return os.ErrProcessDone
+		}
+		return err
 	}
 }

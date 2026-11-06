@@ -2,6 +2,7 @@ package sf
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 
@@ -53,7 +54,7 @@ func LoadDeployPreview(orgAliasOrUser, projectDir string) tea.Cmd {
 					return DeployPreviewLoadedMsg{ProjectDir: projectDir, RawError: msg}
 				}
 			}
-			return ErrMsg{Err: fmt.Errorf("sf project deploy preview: %w", err)}
+			return ErrMsg{Err: sfCommandError("sf project deploy preview", out, err)}
 		}
 		items, perr := parseDeployPreview(out)
 		if perr != nil {
@@ -93,15 +94,21 @@ func runDeploy(g WriteGate, orgAliasOrUser, projectDir string, dryRun bool) tea.
 		if dryRun {
 			args = append(args, "--dry-run")
 		}
-		cmd := sfCommand("sf project deploy start", args...)
+		cmd := sfCommandLong("sf project deploy start", DefaultLongTimeout, args...)
 		cmd.SetDir(projectDir)
 		out, err := cmd.Output()
 		if err != nil {
-			stderr := ""
+			var msg string
+			var te *TimeoutError
 			if ee, ok := err.(*exec.ExitError); ok {
-				stderr = string(ee.Stderr)
+				msg = string(ee.Stderr)
+			} else if errors.As(err, &te) {
+				// Killing sf locally does not cancel the deploy in the org.
+				msg = te.Error() + " — the deploy may still be running in the org; check with `sf project deploy report`"
+			} else {
+				msg = err.Error()
 			}
-			return DeployRunDoneMsg{DryRun: dryRun, Output: string(out), Err: stderr}
+			return DeployRunDoneMsg{DryRun: dryRun, Output: string(out), Err: msg}
 		}
 		return DeployRunDoneMsg{DryRun: dryRun, Output: string(out)}
 	}
