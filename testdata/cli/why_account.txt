@@ -1,0 +1,84 @@
+Why did 001000000000001AAA change?
+Object: Account (Account)
+Tracked fields: Description, Industry, OwnerId, Rating
+
+Saves (newest first):
+
+2026-09-20 14:02:11 UTC  Alex Admin
+  admin@example.com · UserType: Standard · Profile: System Administrator · License: Salesforce
+  Owner: Alex Admin → Sam Seller
+    ↳ AccountAfterUpdate · After triggers — possible — not attributed
+    ↳ Account After: Parent · After-save flows — updates a record variable — not attributed
+  Industry: Energy → Technology
+    ↳ AccountAfterUpdate · After triggers — possible — not attributed
+    ↳ Account After: Parent · After-save flows — updates a record variable — not attributed
+  Rating: Warm → Hot
+    ↳ Account Before: Rating · Before-save flows
+    ↳ AccountAfterUpdate · After triggers — possible — not attributed
+    ↳ Cold Rating Rule · Workflow rules
+    ↳ Account Process · Process Builder — may target other records
+    ↳ Account After: Parent · After-save flows — updates a record variable — not attributed
+  Description: old text → Updated by after-save flow
+    ↳ AccountAfterUpdate · After triggers — possible — not attributed
+    ↳ Account After: Parent · After-save flows — updates a record variable — not attributed
+    ↳ Account After: Description · After-save flows
+
+2026-09-19 03:00:00 UTC  Automated Process [AUTO]
+  autoproc@example.com · UserType: AutomatedProcess
+  hint: often an async or scheduled path, platform event, or queueable
+  Rating: Cold → Warm
+    ↳ Account Before: Rating · Before-save flows
+    ↳ AccountAfterUpdate · After triggers — possible — not attributed
+    ↳ Cold Rating Rule · Workflow rules
+    ↳ Account Process · Process Builder — may target other records
+    ↳ Account After: Parent · After-save flows — updates a record variable — not attributed
+
+2026-09-18 10:00:00 UTC  Integration User [INTEG]
+  integration@example.com · UserType: Standard · Profile: Analytics Cloud Integration User · License: Analytics Cloud Integration User
+  hint: external system via API
+  Industry: ∅ → Energy
+    ↳ AccountAfterUpdate · After triggers — possible — not attributed
+    ↳ Account After: Parent · After-save flows — updates a record variable — not attributed
+
+2026-09-18 09:59:59 UTC  Alex Admin
+  admin@example.com · UserType: Standard · Profile: System Administrator · License: Salesforce
+  Record created
+  Rating: ∅ → Cold
+    ↳ Account Before: Rating · Before-save flows
+    ↳ AccountAfterUpdate · After triggers — possible — not attributed
+    ↳ Cold Rating Rule · Workflow rules
+    ↳ Account Process · Process Builder — may target other records
+    ↳ Account After: Parent · After-save flows — updates a record variable — not attributed
+
+Automation (order of execution):
+
+Before-save flows
+  [ ][U][ ] Account Before: Rating · order 10 · writes Rating
+  [C][U][ ] Zeta Before · order 10
+  [C][ ][ ] Alpha Before
+
+Before triggers
+  [C][ ][ ] AccountBeforeInsert
+  [ ][U][ ] AccountLegacy · inactive
+
+Validation rules
+  Require_Industry · Industry is required
+
+After triggers
+  [ ][U][ ] AccountAfterUpdate
+  [ ][U][ ] AccountLegacy · inactive
+
+Assignment rules
+  (none)
+
+Workflow rules — field updates re-fire before/after update triggers once
+  [C][U][ ] Cold Rating Rule · writes Rating
+
+Process Builder
+  [C][U][ ] Account Process · writes Rating
+
+After-save flows — async paths run after commit
+  [ ][U][ ] Account After: Parent · order 5 · updates a record variable
+  [C][U][ ] Account After: Description · writes Description
+  [C][U][ ] Sync Account Addresses (cpauto) · inactive
+

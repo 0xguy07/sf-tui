@@ -11,7 +11,7 @@ func TestWantsVersion(t *testing.T) {
 			t.Errorf("wantsVersion(%v) = false", args)
 		}
 	}
-	for _, args := range [][]string{nil, {}, {"--help"}, {"query"}} {
+	for _, args := range [][]string{nil, {}, {"--help"}, {"query"}, {"why", "-v"}, {"query", "--version"}} {
 		if wantsVersion(args) {
 			t.Errorf("wantsVersion(%v) = true", args)
 		}

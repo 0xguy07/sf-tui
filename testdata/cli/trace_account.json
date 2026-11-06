@@ -1,0 +1,528 @@
+{
+  "record": {
+    "id": "001000000000001AAA"
+  },
+  "object": {
+    "name": "Account",
+    "label": "Account",
+    "durableId": "Account",
+    "keyPrefix": "001",
+    "historyObject": "AccountHistory"
+  },
+  "trackedFields": [
+    "Description",
+    "Industry",
+    "OwnerId",
+    "Rating"
+  ],
+  "saves": [
+    {
+      "at": "2026-09-20T14:02:11Z",
+      "createdById": "005000000000001AAA",
+      "user": {
+        "id": "005000000000001AAA",
+        "name": "Alex Admin",
+        "username": "admin@example.com",
+        "userType": "Standard",
+        "isActive": true,
+        "profile": "System Administrator",
+        "license": "Salesforce"
+      },
+      "changes": [
+        {
+          "field": "Owner",
+          "canonicalField": "OwnerId",
+          "dataType": "Text",
+          "old": "Alex Admin",
+          "new": "Sam Seller",
+          "oldId": "005000000000001AAA",
+          "newId": "005000000000004AAA",
+          "writers": [
+            {
+              "kind": "trigger",
+              "id": "01q000000000001AAA",
+              "name": "AccountAfterUpdate",
+              "section": "After triggers",
+              "note": "possible — not attributed"
+            },
+            {
+              "kind": "flow",
+              "id": "301000000000004AAA",
+              "name": "Account After: Parent",
+              "section": "After-save flows",
+              "note": "updates a record variable — not attributed"
+            }
+          ]
+        },
+        {
+          "field": "Industry",
+          "canonicalField": "Industry",
+          "dataType": "DynamicEnum",
+          "old": "Energy",
+          "new": "Technology",
+          "writers": [
+            {
+              "kind": "trigger",
+              "id": "01q000000000001AAA",
+              "name": "AccountAfterUpdate",
+              "section": "After triggers",
+              "note": "possible — not attributed"
+            },
+            {
+              "kind": "flow",
+              "id": "301000000000004AAA",
+              "name": "Account After: Parent",
+              "section": "After-save flows",
+              "note": "updates a record variable — not attributed"
+            }
+          ]
+        },
+        {
+          "field": "Rating",
+          "canonicalField": "Rating",
+          "dataType": "DynamicEnum",
+          "old": "Warm",
+          "new": "Hot",
+          "writers": [
+            {
+              "kind": "flow",
+              "id": "301000000000001AAA",
+              "name": "Account Before: Rating",
+              "section": "Before-save flows"
+            },
+            {
+              "kind": "trigger",
+              "id": "01q000000000001AAA",
+              "name": "AccountAfterUpdate",
+              "section": "After triggers",
+              "note": "possible — not attributed"
+            },
+            {
+              "kind": "workflow_rule",
+              "id": "01Q000000000001AAA",
+              "name": "Cold Rating Rule",
+              "section": "Workflow rules"
+            },
+            {
+              "kind": "process_builder",
+              "id": "301000000000003AAA",
+              "name": "Account Process",
+              "section": "Process Builder",
+              "note": "may target other records"
+            },
+            {
+              "kind": "flow",
+              "id": "301000000000004AAA",
+              "name": "Account After: Parent",
+              "section": "After-save flows",
+              "note": "updates a record variable — not attributed"
+            }
+          ]
+        },
+        {
+          "field": "Description",
+          "canonicalField": "Description",
+          "dataType": "TextArea",
+          "old": "old text",
+          "new": "Updated by after-save flow",
+          "writers": [
+            {
+              "kind": "trigger",
+              "id": "01q000000000001AAA",
+              "name": "AccountAfterUpdate",
+              "section": "After triggers",
+              "note": "possible — not attributed"
+            },
+            {
+              "kind": "flow",
+              "id": "301000000000004AAA",
+              "name": "Account After: Parent",
+              "section": "After-save flows",
+              "note": "updates a record variable — not attributed"
+            },
+            {
+              "kind": "flow",
+              "id": "301000000000002AAA",
+              "name": "Account After: Description",
+              "section": "After-save flows"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-19T03:00:00Z",
+      "createdById": "005000000000002AAA",
+      "user": {
+        "id": "005000000000002AAA",
+        "name": "Automated Process",
+        "username": "autoproc@example.com",
+        "userType": "AutomatedProcess",
+        "isActive": true,
+        "badge": "AUTO"
+      },
+      "hint": "often an async or scheduled path, platform event, or queueable",
+      "changes": [
+        {
+          "field": "Rating",
+          "canonicalField": "Rating",
+          "dataType": "DynamicEnum",
+          "old": "Cold",
+          "new": "Warm",
+          "writers": [
+            {
+              "kind": "flow",
+              "id": "301000000000001AAA",
+              "name": "Account Before: Rating",
+              "section": "Before-save flows"
+            },
+            {
+              "kind": "trigger",
+              "id": "01q000000000001AAA",
+              "name": "AccountAfterUpdate",
+              "section": "After triggers",
+              "note": "possible — not attributed"
+            },
+            {
+              "kind": "workflow_rule",
+              "id": "01Q000000000001AAA",
+              "name": "Cold Rating Rule",
+              "section": "Workflow rules"
+            },
+            {
+              "kind": "process_builder",
+              "id": "301000000000003AAA",
+              "name": "Account Process",
+              "section": "Process Builder",
+              "note": "may target other records"
+            },
+            {
+              "kind": "flow",
+              "id": "301000000000004AAA",
+              "name": "Account After: Parent",
+              "section": "After-save flows",
+              "note": "updates a record variable — not attributed"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-18T10:00:00Z",
+      "createdById": "005000000000003AAA",
+      "user": {
+        "id": "005000000000003AAA",
+        "name": "Integration User",
+        "username": "integration@example.com",
+        "userType": "Standard",
+        "isActive": true,
+        "profile": "Analytics Cloud Integration User",
+        "license": "Analytics Cloud Integration User",
+        "badge": "INTEG"
+      },
+      "hint": "external system via API",
+      "changes": [
+        {
+          "field": "Industry",
+          "canonicalField": "Industry",
+          "dataType": "DynamicEnum",
+          "old": null,
+          "new": "Energy",
+          "writers": [
+            {
+              "kind": "trigger",
+              "id": "01q000000000001AAA",
+              "name": "AccountAfterUpdate",
+              "section": "After triggers",
+              "note": "possible — not attributed"
+            },
+            {
+              "kind": "flow",
+              "id": "301000000000004AAA",
+              "name": "Account After: Parent",
+              "section": "After-save flows",
+              "note": "updates a record variable — not attributed"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-18T09:59:59Z",
+      "createdById": "005000000000001AAA",
+      "user": {
+        "id": "005000000000001AAA",
+        "name": "Alex Admin",
+        "username": "admin@example.com",
+        "userType": "Standard",
+        "isActive": true,
+        "profile": "System Administrator",
+        "license": "Salesforce"
+      },
+      "changes": [
+        {
+          "field": "created",
+          "canonicalField": "created",
+          "created": true,
+          "old": null,
+          "new": null
+        },
+        {
+          "field": "Rating",
+          "canonicalField": "Rating",
+          "dataType": "DynamicEnum",
+          "old": null,
+          "new": "Cold",
+          "writers": [
+            {
+              "kind": "flow",
+              "id": "301000000000001AAA",
+              "name": "Account Before: Rating",
+              "section": "Before-save flows"
+            },
+            {
+              "kind": "trigger",
+              "id": "01q000000000001AAA",
+              "name": "AccountAfterUpdate",
+              "section": "After triggers",
+              "note": "possible — not attributed"
+            },
+            {
+              "kind": "workflow_rule",
+              "id": "01Q000000000001AAA",
+              "name": "Cold Rating Rule",
+              "section": "Workflow rules"
+            },
+            {
+              "kind": "process_builder",
+              "id": "301000000000003AAA",
+              "name": "Account Process",
+              "section": "Process Builder",
+              "note": "may target other records"
+            },
+            {
+              "kind": "flow",
+              "id": "301000000000004AAA",
+              "name": "Account After: Parent",
+              "section": "After-save flows",
+              "note": "updates a record variable — not attributed"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "automation": [
+    {
+      "key": "before_flows",
+      "title": "Before-save flows",
+      "items": [
+        {
+          "kind": "flow",
+          "id": "301000000000001AAA",
+          "name": "Account_Before_Rating",
+          "label": "Account Before: Rating",
+          "active": true,
+          "events": [
+            "U"
+          ],
+          "triggerOrder": 10,
+          "versionId": "301000000000001AAA",
+          "writes": [
+            {
+              "field": "Rating"
+            }
+          ]
+        },
+        {
+          "kind": "flow",
+          "id": "301000000000005AAA",
+          "name": "Account_Before_Zeta",
+          "label": "Zeta Before",
+          "active": true,
+          "events": [
+            "C",
+            "U"
+          ],
+          "triggerOrder": 10,
+          "versionId": "301000000000005AAA"
+        },
+        {
+          "kind": "flow",
+          "id": "301000000000006AAA",
+          "name": "Account_Before_Alpha",
+          "label": "Alpha Before",
+          "active": true,
+          "events": [
+            "C"
+          ],
+          "versionId": "301000000000006AAA"
+        }
+      ]
+    },
+    {
+      "key": "before_triggers",
+      "title": "Before triggers",
+      "items": [
+        {
+          "kind": "trigger",
+          "id": "01q000000000002AAA",
+          "name": "AccountBeforeInsert",
+          "active": true,
+          "events": [
+            "C"
+          ]
+        },
+        {
+          "kind": "trigger",
+          "id": "01q000000000003AAA",
+          "name": "AccountLegacy",
+          "active": false,
+          "events": [
+            "U"
+          ],
+          "writesUpdate": true
+        }
+      ]
+    },
+    {
+      "key": "validation_rules",
+      "title": "Validation rules",
+      "items": [
+        {
+          "kind": "validation_rule",
+          "id": "03d000000000001AAA",
+          "name": "Require_Industry",
+          "active": true,
+          "detail": "Industry is required"
+        }
+      ]
+    },
+    {
+      "key": "after_triggers",
+      "title": "After triggers",
+      "items": [
+        {
+          "kind": "trigger",
+          "id": "01q000000000001AAA",
+          "name": "AccountAfterUpdate",
+          "active": true,
+          "events": [
+            "U"
+          ],
+          "writesUpdate": true
+        },
+        {
+          "kind": "trigger",
+          "id": "01q000000000003AAA",
+          "name": "AccountLegacy",
+          "active": false,
+          "events": [
+            "U"
+          ],
+          "writesUpdate": true
+        }
+      ]
+    },
+    {
+      "key": "assignment_rules",
+      "title": "Assignment rules",
+      "items": []
+    },
+    {
+      "key": "workflow_rules",
+      "title": "Workflow rules",
+      "note": "field updates re-fire before/after update triggers once",
+      "items": [
+        {
+          "kind": "workflow_rule",
+          "id": "01Q000000000001AAA",
+          "name": "Cold Rating Rule",
+          "active": true,
+          "events": [
+            "C",
+            "U"
+          ],
+          "writes": [
+            {
+              "field": "Rating"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "process_builder",
+      "title": "Process Builder",
+      "items": [
+        {
+          "kind": "process_builder",
+          "id": "301000000000003AAA",
+          "name": "Account_Process",
+          "label": "Account Process",
+          "active": true,
+          "events": [
+            "C",
+            "U"
+          ],
+          "versionId": "301000000000003AAA",
+          "writes": [
+            {
+              "field": "Rating",
+              "otherRecords": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "after_flows",
+      "title": "After-save flows",
+      "note": "async paths run after commit",
+      "items": [
+        {
+          "kind": "flow",
+          "id": "301000000000004AAA",
+          "name": "Account_After_RecordVar",
+          "label": "Account After: Parent",
+          "active": true,
+          "events": [
+            "U"
+          ],
+          "triggerOrder": 5,
+          "versionId": "301000000000004AAA",
+          "updatesRecordVariable": true
+        },
+        {
+          "kind": "flow",
+          "id": "301000000000002AAA",
+          "name": "Account_After_Description",
+          "label": "Account After: Description",
+          "active": true,
+          "events": [
+            "C",
+            "U"
+          ],
+          "versionId": "301000000000002AAA",
+          "writes": [
+            {
+              "field": "Description"
+            }
+          ]
+        },
+        {
+          "kind": "flow",
+          "name": "SyncAcctContactPointAddress",
+          "label": "Sync Account Addresses",
+          "namespace": "cpauto",
+          "active": false,
+          "events": [
+            "C",
+            "U"
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

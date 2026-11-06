@@ -2283,9 +2283,8 @@ func (m *model) finishWhy() {
 }
 
 func main() {
-	if wantsVersion(os.Args[1:]) {
-		fmt.Println(versionString())
-		return
+	if handled, code := runCLI(os.Args[1:], os.Stdout, os.Stderr, prodDeps()); handled {
+		os.Exit(code)
 	}
 	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
